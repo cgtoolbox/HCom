@@ -11,6 +11,7 @@ import PySide.QtCore as QtCore
 
 import HComClient
 import HComWidgets
+from datetime import timedelta
 reload(HComWidgets)
 import HComUtils
 
@@ -191,12 +192,10 @@ class HComMainView(QtGui.QFrame):
                 self.userListWidget._updateUserList(ID, action)
                 IDLabel = "<FONT COLOR=#4b5488><i>{1}:{2} {0} left</i></FONT>".format(ID, str(now.hour).zfill(2), str(now.minute).zfill(2))
                 self.userListWidget.userListW.outuserInfo.append(IDLabel)
+                self._removeUserTab(ID)
                 
         elif action == "add_tab":
             self._addUserTab(ID)
-            
-        elif action == "append_msg":
-            _appendMessageToTab(ID)
             
     def _updateTabIcon(self, idx):
         
@@ -207,8 +206,7 @@ class HComMainView(QtGui.QFrame):
         if not tarbTarget in self.USER_TABS.keys():
             return False
         
-        curTab = self.centralTabWidget.currentWidget()
-        curTabIdx = self.centralTabWidget.currentIndex()       
+        curTab = self.centralTabWidget.currentWidget()   
         
         if self.USER_TABS[tarbTarget] != curTab:
             targetTabIdx = self.centralTabWidget.indexOf(self.USER_TABS[tarbTarget])
@@ -223,17 +221,17 @@ class HComMainView(QtGui.QFrame):
         
         settings = HComUtils.readIni()
         
-        result = HComClient.sendMessage(targets, self.ID, message, tabTarget)
+        if targets:
+            result = HComClient.sendMessage(targets, self.ID, message, tabTarget)
         
-        if isinstance(result, list):
-            
-            for i in result:
-                tab.outMessage.append("Error: User '{0}' not found.\n".format(i))
+            if isinstance(result, list):
+                
+                for i in result:
+                    tab.outMessage.append("Error: User '{0}' not found.\n".format(i))
                 
         now = datetime.datetime.now()
-        
         timeStamp = "{1}:{2} {0}:".format(self.ID, str(now.hour).zfill(2), str(now.minute).zfill(2))
-        timeStamp = HComUtils.coloredString(timeStamp, "70738c", italic=True)
+        #timeStamp = HComUtils.coloredString(timeStamp, "70738c", italic=True)
         
         tab.appendMessage(self.ID, "   {0}\n".format(str(tab.messageLine.text().encode('latin-1'))), fromMyself=True)
         
@@ -243,30 +241,66 @@ class HComMainView(QtGui.QFrame):
         
         tab.messageLine.clear()
         
-    def _sendOtl(self, targets, tabTarget):
+    def _sendOtl(self, targets, tabTarget, tab):
         
-        HComClient.sendOtl(targets, self.ID, tabTarget)
+        if tab.tabTargetID == "OPEN_CHAT_ROOM":
+            tab = self.openChatRoom
+            
+        result = HComClient.sendOtl(targets, self.ID, tabTarget)
+        if result:
+            now = datetime.datetime.now()
+            msg = str(now.hour).zfill(2)  + ":" + str(now.minute).zfill(2) + ": => " + result[1] + " sent !\n"
+            tab.appendMessage("", msg, fromMyself=True)
         
-    def _sendSettings(self, targets, tabTarget):
+    def _sendSettings(self, targets, tabTarget, tab):
         
-        HComClient.sendSettings(targets, self.ID, tabTarget)
+        if tab.tabTargetID == "OPEN_CHAT_ROOM":
+            tab = self.openChatRoom
         
-    def _sendBgeo(self, targets, tabTarget):
+        result = HComClient.sendSettings(targets, self.ID, tabTarget)
+        if result:
+            now = datetime.datetime.now()
+            msg = str(now.hour).zfill(2)  + ":" + str(now.minute).zfill(2) + ": => " + result[1] + " sent !\n"
+            tab.appendMessage("", msg, fromMyself=True)
+                
+    def _sendBgeo(self, targets, tabTarget, tab):
         
-        HComClient.sendBgeo(targets, self.ID, tabTarget)
+        if tab.tabTargetID == "OPEN_CHAT_ROOM":
+            tab = self.openChatRoom
         
-    def _sendObjMesh(self, targets, tabTarget):
+        result = HComClient.sendBgeo(targets, self.ID, tabTarget)
+        if result:
+            now = datetime.datetime.now()
+            msg = str(now.hour).zfill(2)  + ":" + str(now.minute).zfill(2) + ": => " + result[1] + " sent !\n"
+            tab.appendMessage("", msg, fromMyself=True)
         
-        HComClient.sendObjMesh(targets, self.ID, tabTarget)
+    def _sendObjMesh(self, targets, tabTarget, tab):
         
-    def _sendPic(self, targets, tabTarget):
+        if tab.tabTargetID == "OPEN_CHAT_ROOM":
+            tab = self.openChatRoom
+        
+        result = HComClient.sendObjMesh(targets, self.ID, tabTarget)
+        if result:
+            now = datetime.datetime.now()
+            msg = str(now.hour).zfill(2)  + ":" + str(now.minute).zfill(2) + ": => " + result[1] + " sent !\n"
+            tab.appendMessage("", msg, fromMyself=True)
+        
+        
+    def _sendPic(self, targets, tabTarget, tab):
+        
+        if tab.tabTargetID == "OPEN_CHAT_ROOM":
+            tab = self.openChatRoom
         
         imageFile = QtGui.QFileDialog.getOpenFileName(self, "Pick a picture file", filter="Images (*.png *.tga *.tif *.bmp *.r32z *.u8z *.xpm *.jpg)")
         
         if not imageFile:
             return
         
-        HComClient.sendPic(targets, self.ID, tabTarget, str(imageFile[0]))
+        result = HComClient.sendPic(targets, self.ID, tabTarget, str(imageFile[0]))
+        if result:
+            now = datetime.datetime.now()
+            msg = str(now.hour).zfill(2)  + ":" + str(now.minute).zfill(2) + ": => " + result[1] + " sent !\n"
+            tab.appendMessage("", msg, fromMyself=True)
         
     def _addUserTab(self, target_ID, fromUserList=False):
         '''

@@ -116,7 +116,8 @@ def sendSettings(target_clientID, sender, tabTarget):
         
     settingsData["OTL_PARMS"] = parmDict
     
-    _sendData(target_clientID, sender, settingsData, "settings", tabTarget)
+    result = _sendData(target_clientID, sender, settingsData, "settings", tabTarget)
+    return [result, settingsData["OTL_TYPE"] + " settings"]
     
 def sendOtl(target_clientID, sender, tabTarget):
     
@@ -142,7 +143,8 @@ def sendOtl(target_clientID, sender, tabTarget):
     otlData["OTL_TYPE"] = sel.type().name()
     otlData["OTL_ALL_LIBS"] = HComUtils.getAllLib(sel)
     
-    _sendData(target_clientID, sender, otlData, "otl", tabTarget)
+    result = _sendData(target_clientID, sender, otlData, "otl", tabTarget)
+    return [result, "node: " + otlData["OTL_NAME"]]
     
 def sendBgeo(target_clientID, sender, tabTarget, isObj=False):
     
@@ -168,8 +170,8 @@ def sendBgeo(target_clientID, sender, tabTarget, isObj=False):
         fileType = ".obj"
     
     # Dump geo on disk in a tmp file if data() not supported by houdini's version
-    houVersion = hou.applicationVersion()
-    if houVersion[2] >= 276 and not isObj:
+    # If it is an obj file it must pass by saveToFile() methode
+    if hasattr(geo, "data") and not isObj:
         binaryData = geo.data()
     else:
         tmpFile = hou.expandString("$HOME") + "/" + "tmphcom__" + fileType
@@ -184,10 +186,12 @@ def sendBgeo(target_clientID, sender, tabTarget, isObj=False):
     meshData["MESH_NAME"] = sel.name()
     meshData["MESH_DATA"] = binaryData
     
-    _sendData(target_clientID, sender, meshData, "mesh", tabTarget)
+    result = _sendData(target_clientID, sender, meshData, "mesh", tabTarget)
+    return [result, "geometry: " + meshData["MESH_NAME"] + ", type: " + meshData["MESH_TYPE"] ]
     
 def sendObjMesh(target_clientID, sender, tabTarget):
-    sendBgeo(target_clientID, sender, tabTarget, isObj=True)
+    result = sendBgeo(target_clientID, sender, tabTarget, isObj=True)
+    return result
     
 def sendPic(target_clientID, sender, tabTarget, imagePath):
     
@@ -201,7 +205,8 @@ def sendPic(target_clientID, sender, tabTarget, imagePath):
     outImdageData["IMAGE_NAME"] = os.path.basename(imagePath)
     outImdageData["BINARY_DATA"] = imageData
     
-    _sendData(target_clientID, sender, outImdageData, "pic", tabTarget)
+    result = _sendData(target_clientID, sender, outImdageData, "pic", tabTarget)
+    return [ result, "image file: " + outImdageData["IMAGE_NAME"]]
 
 def getAllClientRegistred():
     

@@ -6,7 +6,6 @@ import PySide.QtGui as QtGui
 import PySide.QtCore as QtCore
 
 import HComUtils
-import HComUi
 
 HCOM_VERSION = "0.5.0"
 
@@ -153,7 +152,7 @@ class UserChatTabWidget(QtGui.QWidget):
         self.sendotlBtn.setIconSize(QtCore.QSize(30,30))
         self.sendotlBtn.setFixedSize(40,40)
         self.sendotlBtn.setIcon(QtGui.QIcon(ICONPATH + "digitalasset.png"))
-        self.sendotlBtn.clicked.connect(lambda: self.mainUI._sendOtl(self.target, self.tabTargetID))
+        self.sendotlBtn.clicked.connect(lambda: self.mainUI._sendOtl(self.target, self.tabTargetID, self))
         self.sendotlBtn.setDisabled(not self.connected)
         self.actionButtonLayout.addWidget(self.sendotlBtn)
         self.widgetList.append(self.sendotlBtn)
@@ -163,7 +162,7 @@ class UserChatTabWidget(QtGui.QWidget):
         self.sendSettingsBtn.setIconSize(QtCore.QSize(30,30))
         self.sendSettingsBtn.setFixedSize(40,40)
         self.sendSettingsBtn.setIcon(QtGui.QIcon(ICONPATH + "digitalasset_settings.png"))
-        self.sendSettingsBtn.clicked.connect(lambda: self.mainUI._sendSettings(self.target, self.tabTargetID))
+        self.sendSettingsBtn.clicked.connect(lambda: self.mainUI._sendSettings(self.target, self.tabTargetID, self))
         self.sendSettingsBtn.setDisabled(not self.connected)
         self.actionButtonLayout.addWidget(self.sendSettingsBtn)
         self.widgetList.append(self.sendSettingsBtn)
@@ -174,7 +173,7 @@ class UserChatTabWidget(QtGui.QWidget):
         self.sendBgeoBtn.setFixedSize(40,40)
         self.sendBgeoBtn.setIcon(QtGui.QIcon(ICONPATH + "bgeo.png"))
         self.sendBgeoBtn.setDisabled(not self.connected)
-        self.sendBgeoBtn.clicked.connect(lambda: self.mainUI._sendBgeo(self.target, self.tabTargetID))
+        self.sendBgeoBtn.clicked.connect(lambda: self.mainUI._sendBgeo(self.target, self.tabTargetID, self))
         self.actionButtonLayout.addWidget(self.sendBgeoBtn)
         self.widgetList.append(self.sendBgeoBtn)
         
@@ -184,7 +183,7 @@ class UserChatTabWidget(QtGui.QWidget):
         self.sendObjBtn.setFixedSize(40,40)
         self.sendObjBtn.setIcon(QtGui.QIcon(ICONPATH + "obj.png"))
         self.sendObjBtn.setDisabled(not self.connected)
-        self.sendObjBtn.clicked.connect(lambda: self.mainUI._sendObjMesh(self.target, self.tabTargetID))
+        self.sendObjBtn.clicked.connect(lambda: self.mainUI._sendObjMesh(self.target, self.tabTargetID, self))
         self.actionButtonLayout.addWidget(self.sendObjBtn)
         self.widgetList.append(self.sendObjBtn)
         
@@ -194,7 +193,7 @@ class UserChatTabWidget(QtGui.QWidget):
         self.sendPictureBtn.setFixedSize(40,40)
         self.sendPictureBtn.setIcon(QtGui.QIcon(ICONPATH + "picture.png"))
         self.sendPictureBtn.setDisabled(not self.connected)
-        self.sendPictureBtn.clicked.connect(lambda: self.mainUI._sendPic(self.target, self.tabTargetID))
+        self.sendPictureBtn.clicked.connect(lambda: self.mainUI._sendPic(self.target, self.tabTargetID, self))
         self.actionButtonLayout.addWidget(self.sendPictureBtn)
         self.widgetList.append(self.sendPictureBtn)
         
@@ -205,11 +204,15 @@ class UserChatTabWidget(QtGui.QWidget):
         
     def appendMessage(self, header, message, fromMyself=False):
         
-        now = datetime.datetime.now()
-        timeStamp = "{1}:{2} {0}:".format(header, str(now.hour).zfill(2), str(now.minute).zfill(2))
+        if header:
+            now = datetime.datetime.now()
+            timeStamp = "{1}:{2} {0}:".format(header, str(now.hour).zfill(2), str(now.minute).zfill(2))
         
-        if fromMyself:
-            timeStamp = HComUtils.coloredString(timeStamp, "70738c", italic=True)
+            if fromMyself:
+                timeStamp = HComUtils.coloredString(timeStamp, "70738c", italic=True)
+                
+        else:
+            timeStamp = ""
             
         msbBox = MessageBox(timeStamp, message, fromMyself)
         self.messageOutLayout.addWidget(msbBox)
@@ -219,7 +222,7 @@ class UserChatTabWidget(QtGui.QWidget):
         now = datetime.datetime.now()
         timeStamp = "{1}:{2} {0}:".format(sender, str(now.hour).zfill(2), str(now.minute).zfill(2))
         
-        message = "{0} want to send you ".format(sender)
+        message = "{0} wants to send you ".format(sender)
         
         if dataType == "otl":
             message += "a node.\n  => type: {0}, Name: {1}".format(data["OTL_TYPE"], data["OTL_NAME"])
@@ -496,8 +499,9 @@ class MessageBox(QtGui.QWidget):
         self.mainLayout.setSpacing(1)
         
         if not isInputData:
-            self.headerMsg = QtGui.QLabel(header)
-            self.mainLayout.addWidget(self.headerMsg)
+            if header:
+                self.headerMsg = QtGui.QLabel(header)
+                self.mainLayout.addWidget(self.headerMsg)
             
         self.msg = QtGui.QTextEdit()
         if fromMyself:

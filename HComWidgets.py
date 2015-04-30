@@ -453,10 +453,6 @@ class SettingsWindow(QtGui.QDialog):
         self.switchToManualMode.setChecked(initValues["SWITCH_TO_MANUAL_UPDATE"])
         settingsLayout.addWidget(self.switchToManualMode)
         
-        self.showOpenChatRoom = QtGui.QCheckBox("Show Open Chat Room")
-        self.showOpenChatRoom.setChecked(initValues["SHOW_OPEN_CHAT"])
-        settingsLayout.addWidget(self.showOpenChatRoom)
-        
         self.saveHistory = QtGui.QCheckBox("Save Conversation history")
         self.saveHistory.setChecked(initValues["SAVE_HISTORY"])
         settingsLayout.addWidget(self.saveHistory)

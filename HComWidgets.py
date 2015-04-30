@@ -6,6 +6,7 @@ import PySide.QtGui as QtGui
 import PySide.QtCore as QtCore
 
 import HComUtils
+import HComClient
 
 HCOM_VERSION = "0.5.0"
 
@@ -24,6 +25,9 @@ class UiUpdaterThread(QtCore.QThread):
     # sender, dataType, dataDict, tabTarget
     input_data_signal = QtCore.Signal(str, str, object, str)
     
+    # Send a data received update
+    data_received_update = QtCore.Signal(object)
+    
     def __init__(self):
         QtCore.QThread.__init__(self)
         
@@ -31,6 +35,7 @@ class UiUpdaterThread(QtCore.QThread):
         self.messageData = None
         self.forceStop = False
         self.inputData = None
+        self.dataReceivedUpdate = False
         
     def run(self):
         
@@ -54,6 +59,10 @@ class UiUpdaterThread(QtCore.QThread):
                 self.input_data_signal.emit(self.inputData[0], self.inputData[1], self.inputData[2], self.inputData[3])
                 time.sleep(0.1)
                 self.inputData = None
+                
+            if self.dataReceivedUpdate:
+                self.data_received_update.emit(self.dataReceivedUpdate)
+                self.dataReceivedUpdate = False
                 
 
 class UserChatTabWidget(QtGui.QWidget):
@@ -149,7 +158,7 @@ class UserChatTabWidget(QtGui.QWidget):
         
         self.sendotlBtn = QtGui.QPushButton("")
         self.sendotlBtn.setToolTip("Send houdini node or digital asset")
-        self.sendotlBtn.setIconSize(QtCore.QSize(30,30))
+        self.sendotlBtn.setIconSize(QtCore.QSize(32,32))
         self.sendotlBtn.setFixedSize(40,40)
         self.sendotlBtn.setIcon(QtGui.QIcon(ICONPATH + "digitalasset.png"))
         self.sendotlBtn.clicked.connect(lambda: self.mainUI._sendOtl(self.target, self.tabTargetID, self))
@@ -159,7 +168,7 @@ class UserChatTabWidget(QtGui.QWidget):
         
         self.sendSettingsBtn = QtGui.QPushButton("")
         self.sendSettingsBtn.setToolTip("Send houdini node or digital asset settings")
-        self.sendSettingsBtn.setIconSize(QtCore.QSize(30,30))
+        self.sendSettingsBtn.setIconSize(QtCore.QSize(32,32))
         self.sendSettingsBtn.setFixedSize(40,40)
         self.sendSettingsBtn.setIcon(QtGui.QIcon(ICONPATH + "digitalasset_settings.png"))
         self.sendSettingsBtn.clicked.connect(lambda: self.mainUI._sendSettings(self.target, self.tabTargetID, self))
@@ -169,7 +178,7 @@ class UserChatTabWidget(QtGui.QWidget):
         
         self.sendBgeoBtn = QtGui.QPushButton("")
         self.sendBgeoBtn.setToolTip("Send bgeo mesh")
-        self.sendBgeoBtn.setIconSize(QtCore.QSize(30,30))
+        self.sendBgeoBtn.setIconSize(QtCore.QSize(32,32))
         self.sendBgeoBtn.setFixedSize(40,40)
         self.sendBgeoBtn.setIcon(QtGui.QIcon(ICONPATH + "bgeo.png"))
         self.sendBgeoBtn.setDisabled(not self.connected)
@@ -179,7 +188,7 @@ class UserChatTabWidget(QtGui.QWidget):
         
         self.sendObjBtn = QtGui.QPushButton("")
         self.sendObjBtn.setToolTip("Send obj mesh")
-        self.sendObjBtn.setIconSize(QtCore.QSize(30,30))
+        self.sendObjBtn.setIconSize(QtCore.QSize(32,32))
         self.sendObjBtn.setFixedSize(40,40)
         self.sendObjBtn.setIcon(QtGui.QIcon(ICONPATH + "obj.png"))
         self.sendObjBtn.setDisabled(not self.connected)
@@ -189,7 +198,7 @@ class UserChatTabWidget(QtGui.QWidget):
         
         self.sendPictureBtn = QtGui.QPushButton("")
         self.sendPictureBtn.setToolTip("Send picture file")
-        self.sendPictureBtn.setIconSize(QtCore.QSize(30,30))
+        self.sendPictureBtn.setIconSize(QtCore.QSize(32,32))
         self.sendPictureBtn.setFixedSize(40,40)
         self.sendPictureBtn.setIcon(QtGui.QIcon(ICONPATH + "picture.png"))
         self.sendPictureBtn.setDisabled(not self.connected)
@@ -216,6 +225,9 @@ class UserChatTabWidget(QtGui.QWidget):
             
         msbBox = MessageBox(timeStamp, message, fromMyself)
         self.messageOutLayout.addWidget(msbBox)
+        self.messageOutLayout.update()
+        
+        self.messageScrollArea.ensureWidgetVisible(self.messageOutLayout.widget())
         
     def appendInputBox(self, sender, dataType, data):
         
@@ -482,7 +494,7 @@ class MessageBox(QtGui.QWidget):
     
     def __init__(self, header, message, fromMyself=False, mainUi=None, data=False, isInputData=False, sender=""):
         QtGui.QWidget.__init__(self)
-        
+                
         if data:
             self.dataType = data[0]
             self.dataDict = data[1]
@@ -496,7 +508,7 @@ class MessageBox(QtGui.QWidget):
         self.setObjectName("msgw")
         
         self.mainLayout = QtGui.QVBoxLayout()
-        self.mainLayout.setSpacing(1)
+        self.mainLayout.setSpacing(5)
         
         if not isInputData:
             if header:
@@ -520,8 +532,16 @@ class MessageBox(QtGui.QWidget):
         self.mainLayout.addWidget(self.msg)
         
         if isInputData:
+            
+            self.activityBar = QtGui.QProgressBar()
+            self.activityBar.setMinimum(0)
+            self.activityBar.setVisible(False)
+            self.activityBar.setFixedHeight(4)
+            
             self.buttonLayout = QtGui.QHBoxLayout()
             self.buttonLayout.setSpacing(5)
+            
+            self.mainLayout.addWidget(self.activityBar)
             
             self.acceptBtn = QtGui.QPushButton("Accept")
             self.acceptBtn.setFixedWidth(75)
@@ -550,25 +570,40 @@ class MessageBox(QtGui.QWidget):
         self.acceptBtn.setDisabled(True)
         self.cancelBtn.setDisabled(True)
         
+        HComClient.sendDataReceivedInfo(self.sender, self.mainUi.ID, [False, self.dataType], self.mainUi.ID)
+        
     def acceptInput(self):
         
         settings = HComUtils.readIni()
-        
+        self.activityBar.setMaximum(0)
+        self.activityBar.setVisible(True)
         # Send a setting of parms for the given node selection type
         if self.dataType == "settings":
             HComUtils.setOtlSettings(self.dataDict, sender=self.sender, settings=settings)
+            HComClient.sendDataReceivedInfo(self.sender, self.mainUi.ID, [True, self.dataType], self.mainUi.ID)
+            self.activityBar.setMaximum(1)
+            self.activityBar.setVisible(False)
         
         # Send an otl or a node
         elif self.dataType == "otl":
             HComUtils.createOtl(self.dataDict, sender=self.sender, settings=settings)
+            HComClient.sendDataReceivedInfo(self.sender, self.mainUi.ID, [True, self.dataType], self.mainUi.ID)
+            self.activityBar.setMaximum(1)
+            self.activityBar.setVisible(False)
                 
         # Bgeo mesh
         elif self.dataType == "mesh":
             HComUtils.createMesh(self.dataDict, sender=self.sender, settings=settings)
+            HComClient.sendDataReceivedInfo(self.sender, self.mainUi.ID, [True, self.dataType], self.mainUi.ID)
+            self.activityBar.setMaximum(1)
+            self.activityBar.setVisible(False)
      
         # Pictures
         elif self.dataType == "pic":
             HComUtils.createPic(self.dataDict, sender=self.sender, settings=settings)
+            HComClient.sendDataReceivedInfo(self.sender, self.mainUi.ID, [True, self.dataType], self.mainUi.ID)
+            self.activityBar.setMaximum(1)
+            self.activityBar.setVisible(False)
         
         self.acceptBtn.setDisabled(True)
         self.cancelBtn.setDisabled(True)

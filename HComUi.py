@@ -30,6 +30,7 @@ class HComMainView(QtGui.QFrame):
         self.updateUiThread.update_ui_signal.connect(self._updateUi)
         self.updateUiThread.append_message_signal.connect(self._appendMessageToTab)
         self.updateUiThread.input_data_signal.connect(self._getInputData)
+        self.updateUiThread.data_received_update.connect(self._dataReveivedUpdate)
         self.updateUiThread.start()
         
         self.connected = connected
@@ -84,6 +85,7 @@ class HComMainView(QtGui.QFrame):
         
         self.ID_line = QtGui.QLineEdit(defaultName)
         self.ID_line.setDisabled(self.connected)
+        self.ID_line.returnPressed.connect(self._rdnname)
         self.titleLayout.addWidget(self.ID_line)
         
         self.title = QtGui.QLabel("")
@@ -159,7 +161,6 @@ class HComMainView(QtGui.QFrame):
             return False
         
         curTab = self.centralTabWidget.currentWidget()
-        curTabIdx = self.centralTabWidget.currentIndex()       
         
         if self.USER_TABS[tarbTarget] != curTab:
             targetTabIdx = self.centralTabWidget.indexOf(self.USER_TABS[tarbTarget])
@@ -196,6 +197,11 @@ class HComMainView(QtGui.QFrame):
                 
         elif action == "add_tab":
             self._addUserTab(ID)
+            
+
+    def _dataReveivedUpdate(self, data):
+        
+        self._appendMessageToTab(data[2], "", data[1])
             
     def _updateTabIcon(self, idx):
         
@@ -246,44 +252,40 @@ class HComMainView(QtGui.QFrame):
         if tab.tabTargetID == "OPEN_CHAT_ROOM":
             tab = self.openChatRoom
             
-        result = HComClient.sendOtl(targets, self.ID, tabTarget)
-        if result:
-            now = datetime.datetime.now()
-            msg = str(now.hour).zfill(2)  + ":" + str(now.minute).zfill(2) + ": => " + result[1] + " sent !\n"
-            tab.appendMessage("", msg, fromMyself=True)
+        HComClient.sendOtl(targets, self.ID, tabTarget)
+        now = datetime.datetime.now()
+        msg = str(now.hour).zfill(2)  + ":" + str(now.minute).zfill(2) + ": => " + "node sent"
+        tab.appendMessage("", msg, fromMyself=True)
         
     def _sendSettings(self, targets, tabTarget, tab):
         
         if tab.tabTargetID == "OPEN_CHAT_ROOM":
             tab = self.openChatRoom
         
-        result = HComClient.sendSettings(targets, self.ID, tabTarget)
-        if result:
-            now = datetime.datetime.now()
-            msg = str(now.hour).zfill(2)  + ":" + str(now.minute).zfill(2) + ": => " + result[1] + " sent !\n"
-            tab.appendMessage("", msg, fromMyself=True)
+        HComClient.sendSettings(targets, self.ID, tabTarget)
+        now = datetime.datetime.now()
+        msg = str(now.hour).zfill(2)  + ":" + str(now.minute).zfill(2) + ": => " + "Node settings sent."
+        tab.appendMessage("", msg, fromMyself=True)
                 
     def _sendBgeo(self, targets, tabTarget, tab):
         
         if tab.tabTargetID == "OPEN_CHAT_ROOM":
             tab = self.openChatRoom
         
-        result = HComClient.sendBgeo(targets, self.ID, tabTarget)
-        if result:
-            now = datetime.datetime.now()
-            msg = str(now.hour).zfill(2)  + ":" + str(now.minute).zfill(2) + ": => " + result[1] + " sent !\n"
-            tab.appendMessage("", msg, fromMyself=True)
+        HComClient.sendBgeo(targets, self.ID, tabTarget)
+        now = datetime.datetime.now()
+        msg = str(now.hour).zfill(2)  + ":" + str(now.minute).zfill(2) + ": => " + "bgeo file sent."
+        tab.appendMessage("", msg, fromMyself=True)
         
     def _sendObjMesh(self, targets, tabTarget, tab):
         
         if tab.tabTargetID == "OPEN_CHAT_ROOM":
             tab = self.openChatRoom
         
-        result = HComClient.sendObjMesh(targets, self.ID, tabTarget)
-        if result:
-            now = datetime.datetime.now()
-            msg = str(now.hour).zfill(2)  + ":" + str(now.minute).zfill(2) + ": => " + result[1] + " sent !\n"
-            tab.appendMessage("", msg, fromMyself=True)
+        HComClient.sendObjMesh(targets, self.ID, tabTarget)
+        now = datetime.datetime.now()
+        msg = str(now.hour).zfill(2)  + ":" + str(now.minute).zfill(2) + ": => " + "mesh file sent."
+        tab.appendMessage("", msg, fromMyself=True)
         
         
     def _sendPic(self, targets, tabTarget, tab):
@@ -296,11 +298,10 @@ class HComMainView(QtGui.QFrame):
         if not imageFile:
             return
         
-        result = HComClient.sendPic(targets, self.ID, tabTarget, str(imageFile[0]))
-        if result:
-            now = datetime.datetime.now()
-            msg = str(now.hour).zfill(2)  + ":" + str(now.minute).zfill(2) + ": => " + result[1] + " sent !\n"
-            tab.appendMessage("", msg, fromMyself=True)
+        HComClient.sendPic(targets, self.ID, tabTarget, str(imageFile[0]))
+        now = datetime.datetime.now()
+        msg = str(now.hour).zfill(2)  + ":" + str(now.minute).zfill(2) + ": => " + "picture file sent."
+        tab.appendMessage("", msg, fromMyself=True)
         
     def _addUserTab(self, target_ID, fromUserList=False):
         '''
@@ -414,6 +415,10 @@ class HComMainView(QtGui.QFrame):
         
         settings = HComWidgets.SettingsWindow(parent=self)
         settings.exec_()
+        
+    def _rdnname(self):
+        if str(self.ID_line.text()) == "2501":
+            self.ID_line.setText(HComUtils.rdnname())
     
 def main():
     
@@ -434,7 +439,6 @@ def main():
 def receiveData(sender, data, dataType, tabTarget):
     
     settings = HComUtils.readIni()
-    
     # Send a text message
     if dataType == "msg":
         
@@ -472,6 +476,35 @@ def receiveData(sender, data, dataType, tabTarget):
     elif dataType == "pic":
         sendAddTabToThread(tabTarget)
         HComMainUi.updateUiThread.inputData = [sender, "pic", data, tabTarget]
+    
+    # Data received
+    
+    elif dataType == "dataReceivedUpdate":
+        
+        now = datetime.datetime.now()
+        minute = str(now.minute).zfill(2)
+        hour = str(now.hour).zfill(2)
+        timestamp = "{0}:{1}: ".format(hour, minute)
+        
+        if data[0]:
+            statue = "accepted."
+        else:
+            statue = "declined."
+        
+        msg = ""
+        if data[1] == "otl":
+            msg = timestamp + "Houdini node " + statue
+            
+        elif data[1] == "settings":
+            msg = timestamp + "Node Settings " + statue
+            
+        elif data[1] == "mesh":
+            msg = timestamp + "Mesh accepted " + statue
+            
+        elif data[1] == "pic":
+            msg = timestamp + "Image File accepted " + statue
+            
+        HComMainUi.updateUiThread.dataReceivedUpdate = [sender, msg, tabTarget]
         
 def sendAddTabToThread(tabTarget):
 

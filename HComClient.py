@@ -5,6 +5,8 @@ import sys
 import getpass
 import os
 
+import threading
+
 pysidePath = os.environ["PYTHONHOME"] + r"lib\site-packages-forced"
 if not pysidePath in sys.path:
     sys.path.append(pysidePath)
@@ -21,6 +23,15 @@ server_id = None
 global bgsrv
 bgsrv = None
 
+# Decorator tor send new data to client
+# into a new thread
+def threaded_sendata(func):
+    
+    def wrapper(*args, **kwargs):
+        t = threading.Thread(target=func, args=args, kwargs=kwargs)
+        t.start()
+    
+    return wrapper
 
 class HCom_ClientService(rpyc.Service):
     '''
@@ -86,17 +97,20 @@ def _sendData(target_clientID, sender, data, datatype, tabTarget):
         return False
     
     try:
-        result = server_conn.root.sendDataToClient(target_clientID, datatype, sender, data, tabTarget)
+        setDataAsync = rpyc.async(server_conn.root.sendDataToClient)
+        result = setDataAsync(target_clientID, datatype, sender, data, tabTarget)
         return result
     except AttributeError:
         return False
         print("ERROR: client {0} not found.".format(target_clientID))
-        
+
+@threaded_sendata  
 def sendMessage(target_clientID, sender, message, tabTarget):
     
     result = _sendData(target_clientID, sender, message, "msg", tabTarget)
     return result
 
+@threaded_sendata
 def sendSettings(target_clientID, sender, tabTarget):
     
     settingsData = {}
@@ -118,7 +132,8 @@ def sendSettings(target_clientID, sender, tabTarget):
     
     result = _sendData(target_clientID, sender, settingsData, "settings", tabTarget)
     return [result, settingsData["OTL_TYPE"] + " settings"]
-    
+
+@threaded_sendata    
 def sendOtl(target_clientID, sender, tabTarget):
     
     n = hou.selectedNodes()
@@ -145,7 +160,8 @@ def sendOtl(target_clientID, sender, tabTarget):
     
     result = _sendData(target_clientID, sender, otlData, "otl", tabTarget)
     return [result, "node: " + otlData["OTL_NAME"]]
-    
+
+@threaded_sendata    
 def sendBgeo(target_clientID, sender, tabTarget, isObj=False):
     
     n = hou.selectedNodes()
@@ -188,11 +204,13 @@ def sendBgeo(target_clientID, sender, tabTarget, isObj=False):
     
     result = _sendData(target_clientID, sender, meshData, "mesh", tabTarget)
     return [result, "geometry: " + meshData["MESH_NAME"] + ", type: " + meshData["MESH_TYPE"] ]
-    
+
+@threaded_sendata    
 def sendObjMesh(target_clientID, sender, tabTarget):
     result = sendBgeo(target_clientID, sender, tabTarget, isObj=True)
     return result
-    
+
+@threaded_sendata
 def sendPic(target_clientID, sender, tabTarget, imagePath):
     
     if not os.path.exists(imagePath):
@@ -207,6 +225,11 @@ def sendPic(target_clientID, sender, tabTarget, imagePath):
     
     result = _sendData(target_clientID, sender, outImdageData, "pic", tabTarget)
     return [ result, "image file: " + outImdageData["IMAGE_NAME"]]
+
+def sendDataReceivedInfo(targetClient, sender, data, tabTarget):
+    
+    _sendData(targetClient, sender, data, "dataReceivedUpdate", tabTarget)
+
 
 def getAllClientRegistred():
     

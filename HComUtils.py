@@ -2,6 +2,7 @@ import os
 import hou
 import time
 import subprocess
+import random
 
 HISTORY_FOLDER = os.path.dirname(__file__) + "\\HCom_History\\"
 ICONPATH = os.path.dirname(__file__) + "\\HCom_Icons\\"
@@ -142,7 +143,6 @@ def incrementFile(filePath):
 def createOtl(data, sender="", settings=None):
     
     nodeName = data["OTL_NAME"]
-    nodeType = data["OTL_TYPE"]
     parentType = data["OTL_PARENT_TYPE"]
     subOtlLibs = data["OTL_ALL_LIBS"]
     
@@ -269,3 +269,8 @@ def createPic(data, sender="", settings=None):
             subprocess.Popen(["explorer", outFile])
         except Exception as e:
             print "EXPLORER ERROR: " + str(e)
+            
+def rdnname():
+    names = ["Motoko", "Bato", "Kusanagi", "Frodon", "Sheldon", "Pipo", "Sam", "Gandalf", "Fitz", "Henry"]
+    names += ["Leonard", "Batman", "Bobleponge", "rincewind", "carrot", "HelloWorld", "Python", "Houdini"]
+    return names[random.randint(0, len(names))]

@@ -273,4 +273,4 @@ def createPic(data, sender="", settings=None):
 def rdnname():
     names = ["Motoko", "Bato", "Kusanagi", "Frodon", "Sheldon", "Pipo", "Sam", "Gandalf", "Fitz", "Henry"]
     names += ["Leonard", "Batman", "Bobleponge", "rincewind", "carrot", "HelloWorld", "Python", "Houdini"]
-    return names[random.randint(0, len(names))]
+    return names[random.randint(0, len(names)-1)]

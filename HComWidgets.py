@@ -478,7 +478,6 @@ class SettingsWindow(QtGui.QDialog):
         self.SETTINGS["SERVER"] = str(self.serverAdress.text())
         self.SETTINGS["PORT"] = str(self.serverPort.text())
         self.SETTINGS["SWITCH_TO_MANUAL_UPDATE"] = str(self.switchToManualMode.isChecked())
-        self.SETTINGS["SHOW_OPEN_CHAT"] = str(self.showOpenChatRoom.isChecked())
         
         HComUtils.writeIni(self.SETTINGS)
         self.close()

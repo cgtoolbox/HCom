@@ -3,6 +3,7 @@ import hou
 import time
 import subprocess
 import random
+import threading
 
 HISTORY_FOLDER = os.path.dirname(__file__) + "\\HCom_History\\"
 ICONPATH = os.path.dirname(__file__) + "\\HCom_Icons\\"
@@ -261,15 +262,21 @@ def createPic(data, sender="", settings=None):
     with open(outFile, 'wb') as f:
         f.write(imageData)
     
+    t = threading.Thread(target = openPicFile, args=(outFile,))
+    t.start()
+            
+def openPicFile(picFile):
+    
     try:
-        subprocess.Popen(["mplay.exe", outFile])
+        subprocess.Popen(["mplay.exe", picFile])
     except Exception as e:
         print "MPLAY ERROR: " + str(e)
         try:
-            subprocess.Popen(["explorer", outFile])
+            subprocess.Popen(["explorer", picFile])
         except Exception as e:
             print "EXPLORER ERROR: " + str(e)
-            
+    
+    
 def rdnname():
     names = ["Motoko", "Bato", "Kusanagi", "Frodon", "Sheldon", "Pipo", "Sam", "Gandalf", "Fitz", "Henry"]
     names += ["Leonard", "Batman", "Bobleponge", "rincewind", "carrot", "HelloWorld", "Python", "Houdini"]

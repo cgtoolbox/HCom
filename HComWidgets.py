@@ -63,7 +63,6 @@ class UiUpdaterThread(QtCore.QThread):
             if self.dataReceivedUpdate:
                 self.data_received_update.emit(self.dataReceivedUpdate)
                 self.dataReceivedUpdate = False
-                
 
 class UserChatTabWidget(QtGui.QWidget):
     
@@ -485,11 +484,31 @@ class SettingsWindow(QtGui.QDialog):
     def cancelSettings(self):
         self.close()
 
+
+class RecieveDataThread(QtCore.QThread):
+    
+    dataRecieved_signal = QtCore.Signal()
+    
+    def __init__(self):
+        QtCore.QThread.__init__(self)
+        
+        self.dataDict = None
+        self.sender = None
+        self.settings = None
+
+    def run(self):
+        
+        self.workFonc(self.dataDict, self.sender, self.settings)
+        self.dataRecieved_signal.emit()
+    
+    def workFonc(self, *args, **kwargs):
+        return
+
 class MessageBox(QtGui.QWidget):
     
     def __init__(self, header, message, fromMyself=False, mainUi=None, data=False, isInputData=False, sender=""):
         QtGui.QWidget.__init__(self)
-                
+        
         if data:
             self.dataType = data[0]
             self.dataDict = data[1]
@@ -499,6 +518,11 @@ class MessageBox(QtGui.QWidget):
             
         self.sender = sender
         self.mainUi = mainUi
+        
+        self.workThread = RecieveDataThread()
+        self.workThread.dataRecieved_signal.connect(self.endJob)
+        self.workThread.dataDict = self.dataDict
+        self.workThread.sender = self.sender
         
         self.setObjectName("msgw")
         
@@ -571,34 +595,44 @@ class MessageBox(QtGui.QWidget):
         
         settings = HComUtils.readIni()
         self.activityBar.setMaximum(0)
+        self.activityBar.setTextVisible(False)
         self.activityBar.setVisible(True)
+        
+        self.workThread.settings = settings
+        
         # Send a setting of parms for the given node selection type
         if self.dataType == "settings":
-            HComUtils.setOtlSettings(self.dataDict, sender=self.sender, settings=settings)
-            HComClient.sendDataReceivedInfo(self.sender, self.mainUi.ID, [True, self.dataType], self.mainUi.ID)
-            self.activityBar.setMaximum(1)
-            self.activityBar.setVisible(False)
+            
+            self.workThread.workFonc = HComUtils.setOtlSettings
+            self.workThread.start()
         
         # Send an otl or a node
         elif self.dataType == "otl":
-            HComUtils.createOtl(self.dataDict, sender=self.sender, settings=settings)
-            HComClient.sendDataReceivedInfo(self.sender, self.mainUi.ID, [True, self.dataType], self.mainUi.ID)
-            self.activityBar.setMaximum(1)
-            self.activityBar.setVisible(False)
+            
+            self.workThread.workFonc = HComUtils.createOtl
+            self.workThread.start()
                 
         # Bgeo mesh
         elif self.dataType == "mesh":
-            HComUtils.createMesh(self.dataDict, sender=self.sender, settings=settings)
-            HComClient.sendDataReceivedInfo(self.sender, self.mainUi.ID, [True, self.dataType], self.mainUi.ID)
-            self.activityBar.setMaximum(1)
-            self.activityBar.setVisible(False)
+            
+            self.workThread.workFonc = HComUtils.createMesh
+            self.workThread.start()
      
         # Pictures
         elif self.dataType == "pic":
-            HComUtils.createPic(self.dataDict, sender=self.sender, settings=settings)
-            HComClient.sendDataReceivedInfo(self.sender, self.mainUi.ID, [True, self.dataType], self.mainUi.ID)
-            self.activityBar.setMaximum(1)
-            self.activityBar.setVisible(False)
-        
+            
+            self.workThread.workFonc = HComUtils.createPic
+            self.workThread.start()
+            
         self.acceptBtn.setDisabled(True)
         self.cancelBtn.setDisabled(True)
+            
+        
+    def endJob(self):
+        
+        HComClient.sendDataReceivedInfo(self.sender, self.mainUi.ID, [True, self.dataType], self.mainUi.ID)
+        self.activityBar.setMaximum(1)
+        self.activityBar.setValue(1)
+        self.activityBar.setStyleSheet('''QProgressBar::chunk{background:green;}''')
+        
+        

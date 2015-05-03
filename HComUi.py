@@ -4,16 +4,16 @@ import time
 import datetime
 import socket
 import os
-import subprocess
 
 import PySide.QtGui as QtGui
 import PySide.QtCore as QtCore
 
 import HComClient
+
 import HComWidgets
-from datetime import timedelta
 reload(HComWidgets)
 import HComUtils
+reload(HComUtils)
 
 if not hasattr(hou.session, "HCOM_TABS"):
     hou.session.HCOM_TABS = {}

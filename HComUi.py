@@ -15,6 +15,9 @@ from datetime import timedelta
 reload(HComWidgets)
 import HComUtils
 
+if not hasattr(hou.session, "HCOM_TABS"):
+    hou.session.HCOM_TABS = {}
+
 global HComMainUi
 HComMainUi = None
 
@@ -34,7 +37,10 @@ class HComMainView(QtGui.QFrame):
         self.updateUiThread.start()
         
         self.connected = connected
-        self.USER_TABS = {}
+        if hou.session.HCOM_TABS != {}:
+            self.USER_TABS = hou.session.HCOM_TABS
+        else:
+            self.USER_TABS = {}
         
         if not self.connected:
             self.hcc = False
@@ -144,11 +150,25 @@ class HComMainView(QtGui.QFrame):
     def __init_centralWidget(self):
         
         self.centralTabWidget = QtGui.QTabWidget()
+        self.centralTabWidget.setStyleSheet('''QTabWidget{background-color:red;}''')
         self.centralTabWidget.currentChanged.connect(self._updateTabIcon)
         
-        self.openChatRoom = HComWidgets.UserChatTabWidget("OPEN_CHAT_ROOM", openChatRoom=True, parent=self)
-        self.centralTabWidget.addTab(self.openChatRoom, "Open Chat Room")
-        self.USER_TABS["OPEN_CHAT_ROOM"] = self.openChatRoom
+        if hou.session.HCOM_TABS != {}:
+            if "OPEN_CHAT_ROOM" in hou.session.HCOM_TABS.keys():
+                tab = hou.session.HCOM_TABS["OPEN_CHAT_ROOM"]
+                self.USER_TABS["OPEN_CHAT_ROOM"] = tab
+                self.openChatRoom = tab
+                self.centralTabWidget.addTab(self.openChatRoom, "Open Chat Room")
+                
+            for k in hou.session.HCOM_TABS.keys():
+                if k == "OPEN_CHAT_ROOM": continue
+                tab = hou.session.HCOM_TABS[k]
+                self.centralTabWidget.addTab(tab, k)
+        else:
+            self.openChatRoom = HComWidgets.UserChatTabWidget("OPEN_CHAT_ROOM", openChatRoom=True, parent=self)
+            self.centralTabWidget.addTab(self.openChatRoom, "Open Chat Room")
+            self.USER_TABS["OPEN_CHAT_ROOM"] = self.openChatRoom
+            hou.session.HCOM_TABS["OPEN_CHAT_ROOM"] = self.openChatRoom
         
         self.splitter.addWidget(self.centralTabWidget)
 
@@ -219,6 +239,8 @@ class HComMainView(QtGui.QFrame):
             self.centralTabWidget.tabBar().setTabIcon(targetTabIdx, QtGui.QIcon(ICONPATH + "unreadmsg.png"))
             
         self.USER_TABS[tarbTarget].appendMessage(messageHeader, message)
+        
+        hou.session.HCOM_TABS = self.USER_TABS
         
     def _sendMessage(self, targets, message, tab, tabTarget):
         
@@ -323,6 +345,8 @@ class HComMainView(QtGui.QFrame):
             
             if fromUserList:
                 self.centralTabWidget.setCurrentWidget(tab)
+                
+        hou.session.HCOM_TABS = self.USER_TABS
 
     def _removeUserTab(self, ID):
         
@@ -330,6 +354,7 @@ class HComMainView(QtGui.QFrame):
             self.USER_TABS[ID].close()
             self.USER_TABS[ID].deleteLater()
             del(self.USER_TABS[ID])
+            hou.session.HCOM_TABS = self.USER_TABS
            
     def _connectToHCom(self):
         

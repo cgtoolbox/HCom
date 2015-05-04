@@ -1,4 +1,5 @@
 *.pyc
 HComClient.pyc
 *.pyc
+*.project
 *.pydevproject

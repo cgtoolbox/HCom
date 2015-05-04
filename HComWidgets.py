@@ -130,14 +130,15 @@ class UserChatTabWidget(QtGui.QWidget):
         self.messageLayout = QtGui.QHBoxLayout()
         
         self.messageLayout.setSpacing(5)
-        self.messageLine = QtGui.QLineEdit()
+        self.messageLine = InputMessageBox(self)
+        self.messageLine.setMaximumHeight(50)
         self.messageLine.setDisabled(not self.connected)
-        self.messageLine.returnPressed.connect(lambda: self.mainUI._sendMessage(self.target, str(self.messageLine.text().encode('latin-1')), self, self.tabTargetID))
         self.messageLayout.addWidget(self.messageLine)
         self.widgetList.append(self.messageLine)
         
         self.messageSendBtn = QtGui.QPushButton("Send Message")
-        self.messageSendBtn.clicked.connect(lambda: self.mainUI._sendMessage(self.target, str(self.messageLine.text().encode('latin-1')), self, self.tabTargetID))
+        #self.messageSendBtn.setFixedHeight(50)
+        self.messageSendBtn.clicked.connect(lambda: self.mainUI._sendMessage(self.target, str(self.messageLine.toPlainText().encode('latin-1')), self, self.tabTargetID))
         self.messageSendBtn.setDisabled(not self.connected)
         self.messageLayout.addWidget(self.messageSendBtn)
         self.widgetList.append(self.messageSendBtn)
@@ -534,19 +535,13 @@ class MessageBox(QtGui.QWidget):
                 self.headerMsg = QtGui.QLabel(header)
                 self.mainLayout.addWidget(self.headerMsg)
             
-        self.msg = QtGui.QTextEdit()
+        self.msg = QtGui.QLabel(message)
+        self.msg.setTextInteractionFlags(QtCore.Qt.TextSelectableByMouse)
         if fromMyself:
-            self.msg.setStyleSheet('''QTextEdit{background-color:rgba(128,128,128,0); border:None}''')
+            self.msg.setStyleSheet('''QLabel{background-color:rgba(128,128,128,0); border:None}''')
         else:
-            self.msg.setStyleSheet('''QTextEdit{background-color:rgba(100,110,140,0); border:None}''')
-            
-        self.msg.setVerticalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
-        
-        txtDoc = QtGui.QTextDocument(message)
-        self.msg.setReadOnly(True)
-        self.msg.setDocument(txtDoc)
-        h = self.msg.document().size().height()
-        self.msg.setMinimumHeight(h+15)
+            self.msg.setStyleSheet('''QLabel{background-color:rgba(100,110,140,0); border:None}''')
+
         
         self.mainLayout.addWidget(self.msg)
         
@@ -575,10 +570,6 @@ class MessageBox(QtGui.QWidget):
             self.buttonLayout.setAlignment(QtCore.Qt.AlignRight)
             
             self.mainLayout.addItem(self.buttonLayout)
-            self.setFixedHeight(h+50)
-            
-        else:
-            self.setFixedHeight(h+15)
             
         self.setLayout(self.mainLayout)
         
@@ -635,4 +626,23 @@ class MessageBox(QtGui.QWidget):
         self.activityBar.setValue(1)
         self.activityBar.setStyleSheet('''QProgressBar::chunk{background:green;}''')
         
+
+class InputMessageBox(QtGui.QTextEdit):
+    
+    def __init__(self, parent):
+        QtGui.QTextEdit.__init__(self, parent=parent)
         
+        self.parent = parent
+                    
+    def keyPressEvent(self, event):
+        
+        mod = QtGui.QApplication.keyboardModifiers()
+
+        if (event.key() == QtCore.Qt.Key_Enter or event.key() == QtCore.Qt.Key_Return) and mod == QtCore.Qt.ShiftModifier:
+            self.append("")
+        
+        elif  (event.key() == QtCore.Qt.Key_Enter or event.key() == QtCore.Qt.Key_Return) and mod != QtCore.Qt.ShiftModifier:
+            self.parent.mainUI._sendMessage(self.parent.target, str(self.toPlainText().encode('latin-1')), self.parent, self.parent.tabTargetID)
+        
+        else:
+            super(InputMessageBox, self).keyPressEvent(event)

@@ -259,13 +259,12 @@ class HComMainView(QtGui.QFrame):
                 
         now = datetime.datetime.now()
         timeStamp = "{1}:{2} {0}:".format(self.ID, str(now.hour).zfill(2), str(now.minute).zfill(2))
-        #timeStamp = HComUtils.coloredString(timeStamp, "70738c", italic=True)
         
-        tab.appendMessage(self.ID, "   {0}\n".format(str(tab.messageLine.text().encode('latin-1'))), fromMyself=True)
+        tab.appendMessage(self.ID, "{0}\n".format(str(tab.messageLine.toPlainText().encode('latin-1'))), fromMyself=True)
         
         if settings["SAVE_HISTORY"]:
             for t in targets:
-                HComUtils.writeHistory(t, timeStamp, str(tab.messageLine.text().encode('latin-1')))
+                HComUtils.writeHistory(t, timeStamp, str(tab.messageLine.toPlainText().encode('latin-1')))
         
         tab.messageLine.clear()
         

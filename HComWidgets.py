@@ -536,6 +536,10 @@ class SettingsWindow(QtGui.QDialog):
         self.saveHistory.setChecked(initValues["SAVE_HISTORY"])
         settingsLayout.addWidget(self.saveHistory)
         
+        self.playSounds = QtGui.QCheckBox("Play Sounds")
+        self.playSounds.setChecked(initValues["PLAY_SOUND"])
+        settingsLayout.addWidget(self.playSounds)
+        
         buttonsLayout = QtGui.QHBoxLayout()
         buttonsLayout.setSpacing(10)
         
@@ -557,6 +561,7 @@ class SettingsWindow(QtGui.QDialog):
         self.SETTINGS["SERVER"] = str(self.serverAdress.text())
         self.SETTINGS["PORT"] = str(self.serverPort.text())
         self.SETTINGS["SWITCH_TO_MANUAL_UPDATE"] = str(self.switchToManualMode.isChecked())
+        self.SETTINGS["PLAY_SOUND"] = str(self.playSounds.isChecked())
         
         HComUtils.writeIni(self.SETTINGS)
         self.close()
@@ -735,6 +740,7 @@ class MessageBox(QtGui.QWidget):
         self.activityBar.setMaximum(1)
         self.activityBar.setValue(1)
         self.activityBar.setStyleSheet('''QProgressBar::chunk{background:green;}''')
+        self.dataDict = None
         
 
 class InputMessageBox(QtGui.QTextEdit):

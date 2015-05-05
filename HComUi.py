@@ -186,6 +186,12 @@ class HComMainView(QtGui.QFrame):
             targetTabIdx = self.centralTabWidget.indexOf(self.USER_TABS[tarbTarget])
             self.centralTabWidget.tabBar().setTabIcon(targetTabIdx, QtGui.QIcon(ICONPATH + "unreadmsg.png"))
             
+            settings = HComUtils.readIni()
+            if "PLAY_SOUND" in settings.keys():
+                if settings["PLAY_SOUND"]:
+                    s = QtGui.QSound(ICONPATH + "gnm.wav")
+                    s.play()
+            
         self.USER_TABS[tarbTarget].appendInputBox(sender, dataType, data)
         
 
@@ -237,6 +243,12 @@ class HComMainView(QtGui.QFrame):
         if self.USER_TABS[tarbTarget] != curTab:
             targetTabIdx = self.centralTabWidget.indexOf(self.USER_TABS[tarbTarget])
             self.centralTabWidget.tabBar().setTabIcon(targetTabIdx, QtGui.QIcon(ICONPATH + "unreadmsg.png"))
+            
+            settings = HComUtils.readIni()
+            if "PLAY_SOUND" in settings.keys():
+                if settings["PLAY_SOUND"]:
+                    s = QtGui.QSound(ICONPATH + "gnm.wav")
+                    s.play()
             
         self.USER_TABS[tarbTarget].appendMessage(messageHeader, message)
         

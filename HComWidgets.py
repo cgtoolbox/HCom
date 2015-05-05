@@ -14,8 +14,65 @@ ICONPATH = os.path.dirname(__file__) + "\\HCom_Icons\\"
 HISTORY_PATH = os.path.dirname(__file__) + "\\HCom_History"
 RECEIVED_FILES_PATH = os.path.dirname(__file__) + "\\HCom_Received_Files"
 
-class UiUpdaterThread(QtCore.QThread):
+###########################################
+# THREADS
+###########################################
+class RecieveDataThread(QtCore.QThread):
+    '''
+        Thread used to update message box when a client is writing a data.
+    '''
+    dataRecieved_signal = QtCore.Signal()
     
+    def __init__(self):
+        QtCore.QThread.__init__(self)
+        
+        self.dataDict = None
+        self.sender = None
+        self.settings = None
+
+    def run(self):
+        
+        self.workFonc(self.dataDict, self.sender, self.settings)
+        self.dataRecieved_signal.emit()
+    
+    def workFonc(self, *args, **kwargs):
+        return
+    
+class SendingDataThread(QtCore.QThread):
+    '''
+        Thread used to update the progress bar when a client is sending a data to the server.
+    '''
+    dataSent_signal = QtCore.Signal(int)
+    
+    def __init__(self):
+        
+        QtCore.QThread.__init__(self)
+        self.target_clientID = None
+        self.sender = None
+        self.tabTarget = None
+        self.imagePath = None
+        
+    def run(self):
+        
+        if self.imagePath:
+            result = self.workFunc(self.target_clientID, self.sender, self.tabTarget, self.imagePath)
+        else:
+            result = self.workFunc(self.target_clientID, self.sender, self.tabTarget)
+        
+        if result:
+            self.dataSent_signal.emit(1)
+        else:
+            self.dataSent_signal.emit(0)
+            
+    def workFunc(self, *args, **kwargs):
+        pass
+
+class UiUpdaterThread(QtCore.QThread):
+    '''
+       Thread used for all update made on main UI
+       This include appening a message, receiving confirmation
+       Change icons states 
+    '''
     # Type of UI changement
     update_ui_signal = QtCore.Signal(str)
     
@@ -64,7 +121,15 @@ class UiUpdaterThread(QtCore.QThread):
                 self.data_received_update.emit(self.dataReceivedUpdate)
                 self.dataReceivedUpdate = False
 
+###########################################
+# WIDGETS
+###########################################
+
 class UserChatTabWidget(QtGui.QWidget):
+    '''
+        Widget appended to the main tab widget when a user double click
+        on a user name or when a user receive a message from a user
+    '''
     
     def __init__(self, target, openChatRoom=False, parent=None):
         QtGui.QWidget.__init__(self, parent=parent)
@@ -111,7 +176,6 @@ class UserChatTabWidget(QtGui.QWidget):
         self.centralLayout.addItem(self.targetLayout)
         
         # Message widget
-        ###############################################################
         self.messageScrollArea = QtGui.QScrollArea()
         self.messageScrollArea.setWidgetResizable(True)
         
@@ -253,13 +317,21 @@ class UserChatTabWidget(QtGui.QWidget):
         msbBox = MessageBox(timeStamp, message, data=data, isInputData=True, mainUi=self.mainUI, sender=sender)
         self.messageOutLayout.addWidget(msbBox)
         
+    def appendDataSendBox(self, msg, targets, _sender, tabTarget, workFunc, imagePath=None):
+        
+        box = SendingDataMessageBox(msg, targets, _sender, tabTarget, workFunc, imagePath=imagePath, parent=self)
+        self.messageOutLayout.addWidget(box)
+        box.workerThread.start()
+        
     def disableTab(self, toggle):
         
         for w in self.widgetList:
             w.setDisabled(toggle)
 
 class UserListDockWidget(QtGui.QWidget):
-    
+    '''
+        Widget use as container for the user list and user connection infos
+    '''
     def __init__(self, hcc, session_ID, parent=None):
         QtGui.QWidget.__init__(self, parent=parent)
         
@@ -344,7 +416,9 @@ class UserListDockWidget(QtGui.QWidget):
             print("ERROR: Received files folder not found.")
         
 class UserListWidget(QtGui.QVBoxLayout):
-    
+    '''
+        User list connected, used only in UserListDockWidget
+    '''
     def __init__(self, session_ID, mainUI=None, parent=None):
         
         QtGui.QVBoxLayout.__init__(self)
@@ -400,9 +474,12 @@ class UserListWidget(QtGui.QVBoxLayout):
     
     def clearUserList(self):
         self.userList.clear()
-        
+
+
 class HelpWindow(QtGui.QDialog):
-    
+    '''
+        help / infos window
+    '''
     def __init__(self, parent=None):
         QtGui.QDialog.__init__(self, parent=parent)
         
@@ -419,7 +496,9 @@ class HelpWindow(QtGui.QDialog):
         self.setLayout(mainLayout)
 
 class SettingsWindow(QtGui.QDialog):
-    
+    '''
+        The setting and options window
+    '''
     def __init__(self, parent=None):
         QtGui.QDialog.__init__(self, parent=parent)
         
@@ -486,27 +565,58 @@ class SettingsWindow(QtGui.QDialog):
         self.close()
 
 
-class RecieveDataThread(QtCore.QThread):
-    
-    dataRecieved_signal = QtCore.Signal()
-    
-    def __init__(self):
-        QtCore.QThread.__init__(self)
+class SendingDataMessageBox(QtGui.QWidget):
+    '''
+        Widget added to the current tab when data are being sent by a user
+    '''
+    def __init__(self, msg, target_clientID, _sender, tabTarget, workFunc, imagePath=None, parent=None):
+        QtGui.QWidget.__init__(self, parent=parent)
         
-        self.dataDict = None
-        self.sender = None
-        self.settings = None
-
-    def run(self):
+        self.workerThread = SendingDataThread()
+        self.workerThread.workFunc = workFunc
+        self.workerThread.target_clientID = target_clientID
+        self.workerThread.tabTarget = tabTarget
+        self.workerThread.sender = _sender
+        self.workerThread.imagePath = imagePath
+        self.workerThread.dataSent_signal.connect(self.dataSent)
         
-        self.workFonc(self.dataDict, self.sender, self.settings)
-        self.dataRecieved_signal.emit()
-    
-    def workFonc(self, *args, **kwargs):
-        return
-
+        layout= QtGui.QVBoxLayout()
+        layout.setSpacing(5)
+        
+        self.msg = QtGui.QLabel(msg)
+        layout.addWidget(self.msg)
+        
+        self.progressBar = QtGui.QProgressBar()
+        self.progressBar.setMinimum(0)
+        self.progressBar.setMaximum(0)
+        self.progressBar.setFixedHeight(4)
+        self.progressBar.setTextVisible(False)
+        layout.addWidget(self.progressBar)
+        
+        self.setLayout(layout)
+        
+    def dataSent(self, result):
+        
+        if result:
+            mod = " sent !"
+        else:
+            mod = " cancelled !"
+        
+        tmp = str(self.msg.text()).replace("Sending ", "") + mod
+        
+        self.msg.setText(tmp)
+        self.progressBar.setMinimum(0)
+        self.progressBar.setMaximum(1)
+        self.progressBar.setValue(1)
+        if result:
+            self.progressBar.setStyleSheet('''QProgressBar::chunk{background:green;}''')
+        else:
+            self.progressBar.setStyleSheet('''QProgressBar::chunk{background:red;}''')
+            
 class MessageBox(QtGui.QWidget):
-    
+    '''
+        Widget added to the current tab when a user is receiving data from another client
+    '''
     def __init__(self, header, message, fromMyself=False, mainUi=None, data=False, isInputData=False, sender=""):
         QtGui.QWidget.__init__(self)
         
@@ -628,7 +738,9 @@ class MessageBox(QtGui.QWidget):
         
 
 class InputMessageBox(QtGui.QTextEdit):
-    
+    '''
+        Custom message text field
+    '''
     def __init__(self, parent):
         QtGui.QTextEdit.__init__(self, parent=parent)
         

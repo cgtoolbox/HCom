@@ -110,7 +110,7 @@ def sendMessage(target_clientID, sender, message, tabTarget):
     result = _sendData(target_clientID, sender, message, "msg", tabTarget)
     return result
 
-@threaded_sendata
+
 def sendSettings(target_clientID, sender, tabTarget):
     
     settingsData = {}
@@ -133,7 +133,7 @@ def sendSettings(target_clientID, sender, tabTarget):
     result = _sendData(target_clientID, sender, settingsData, "settings", tabTarget)
     return [result, settingsData["OTL_TYPE"] + " settings"]
 
-@threaded_sendata    
+ 
 def sendOtl(target_clientID, sender, tabTarget):
     
     n = hou.selectedNodes()
@@ -159,9 +159,12 @@ def sendOtl(target_clientID, sender, tabTarget):
     otlData["OTL_ALL_LIBS"] = HComUtils.getAllLib(sel)
     
     result = _sendData(target_clientID, sender, otlData, "otl", tabTarget)
-    return [result, "node: " + otlData["OTL_NAME"]]
+    if result:
+        return True
+    else:
+        return False
 
-@threaded_sendata    
+
 def sendBgeo(target_clientID, sender, tabTarget, isObj=False):
     
     n = hou.selectedNodes()
@@ -203,18 +206,18 @@ def sendBgeo(target_clientID, sender, tabTarget, isObj=False):
     meshData["MESH_DATA"] = binaryData
     
     result = _sendData(target_clientID, sender, meshData, "mesh", tabTarget)
-    return [result, "geometry: " + meshData["MESH_NAME"] + ", type: " + meshData["MESH_TYPE"] ]
+    if result:
+        return True
+    else:
+        return False
 
-@threaded_sendata    
+
 def sendObjMesh(target_clientID, sender, tabTarget):
     result = sendBgeo(target_clientID, sender, tabTarget, isObj=True)
     return result
 
-@threaded_sendata
+
 def sendPic(target_clientID, sender, tabTarget, imagePath):
-    
-    if not os.path.exists(imagePath):
-        return False
     
     with open(imagePath, 'rb') as f:
         imageData = f.read()
@@ -224,7 +227,10 @@ def sendPic(target_clientID, sender, tabTarget, imagePath):
     outImdageData["BINARY_DATA"] = imageData
     
     result = _sendData(target_clientID, sender, outImdageData, "pic", tabTarget)
-    return [ result, "image file: " + outImdageData["IMAGE_NAME"]]
+    if result:
+        return True
+    else:
+        return False
 
 def sendDataReceivedInfo(targetClient, sender, data, tabTarget):
     

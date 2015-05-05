@@ -6,9 +6,9 @@
  same interface or of the interfaces menu are not allowed
  in a single file. -->
   <interface name="HCom" label="HCom" icon="hcom.png">
-    <script><![CDATA[import HComUi
-reload(HComUi)
+    <script><![CDATA[import HCom.HComUi
+reload(HCom.HComUi)
 def createInterface():
-    return HComUi.main()]]></script>
+    return HCom.HComUi.main()]]></script>
   </interface>
 </pythonPanelDocument>

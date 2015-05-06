@@ -145,8 +145,37 @@ def sendOtl(target_clientID, sender, tabTarget):
     parentType = ""
     if sel.__class__ == hou.SopNode:
         parentType = "geo"
+        
     elif sel.__class__ == hou.ObjNode:
         parentType = "obj"
+        
+    elif sel.__class__ == hou.ShopNode:
+        parentType = "shop"
+        
+    elif sel.__class__ == hou.CopNode:
+        parentType = "cop"
+        
+    elif sel.__class__ == hou.RopNode:
+        parentType = "rop"
+        
+    elif sel.__class__ == hou.VopNode:
+        
+        parentType = "vop;"
+        parentType += sel.parent().type().name() + ";"
+        
+        if sel.parent().__class__ == hou.SopNode:
+            parentType += "sop"
+            
+        elif sel.parent().__class__ == hou.ShopNode:
+            parentType += "material"
+            
+        elif sel.parent().__class__ == hou.CopNode:
+            parentType += "cop"
+            
+        else:
+            hou.ui.displayMessage("The current node type is not supported by HCom yet.")
+            return False
+        
     else:
         hou.ui.displayMessage("The current node type is not supported by HCom yet.")
         return False

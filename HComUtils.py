@@ -189,6 +189,45 @@ def createOtl(data, sender="", settings=None):
             else:
                 outPyCode += c + "\n"
         
+        # Change parent to shopnet for shop nodes       
+        elif parentType == "shop":
+            if c.replace(" ", "").startswith("hou_parent") and not houNodeFound:
+                houNodeFound = True
+                outPyCode += c + "\n"
+                outPyCode += "container = hou.node('/obj').createNode('geo', run_init_scripts=False)\n"
+                outPyCode += "container.setName('{0}_container_' + '_from_{1}', unique_name=True)\n".format(nodeName, str(sender))
+                outPyCode += "container.appendComment('HCom:')\n"
+                outPyCode += "container.appendComment('{0}')\n".format(comment)
+                outPyCode += "hou_parent = container.createNode('shopnet', run_init_scripts=False)\n"
+            else:
+                outPyCode += c + "\n"
+                
+        # Change parent to copnet for cop nodes       
+        elif parentType == "cop":
+            if c.replace(" ", "").startswith("hou_parent") and not houNodeFound:
+                houNodeFound = True
+                outPyCode += c + "\n"
+                outPyCode += "container = hou.node('/obj').createNode('geo', run_init_scripts=False)\n"
+                outPyCode += "container.setName('{0}_container_' + '_from_{1}', unique_name=True)\n".format(nodeName, str(sender))
+                outPyCode += "container.appendComment('HCom:')\n"
+                outPyCode += "container.appendComment('{0}')\n".format(comment)
+                outPyCode += "hou_parent = container.createNode('cop2net', run_init_scripts=False)\n"
+            else:
+                outPyCode += c + "\n"
+                
+        # Change parent to ropnet for rop nodes       
+        elif parentType == "rop":
+            if c.replace(" ", "").startswith("hou_parent") and not houNodeFound:
+                houNodeFound = True
+                outPyCode += c + "\n"
+                outPyCode += "container = hou.node('/obj').createNode('geo', run_init_scripts=False)\n"
+                outPyCode += "container.setName('{0}_container_' + '_from_{1}', unique_name=True)\n".format(nodeName, str(sender))
+                outPyCode += "container.appendComment('HCom:')\n"
+                outPyCode += "container.appendComment('{0}')\n".format(comment)
+                outPyCode += "hou_parent = container.createNode('ropnet', run_init_scripts=False)\n"
+            else:
+                outPyCode += c + "\n"
+        
         # Change code to change node name
         elif parentType == "obj":
             if c.startswith("hou_node") and not houNodeFound:
@@ -199,7 +238,53 @@ def createOtl(data, sender="", settings=None):
                 outPyCode += "hou_node.appendComment('{0}')\n".format(comment)
             else:
                 outPyCode += c + "\n"
-    
+                
+        # Change parent to vopsop for vex nodes       
+        elif "vop" in parentType:
+            
+            parentTypeContainer = parentType.split(";")[1]
+            parentClass = parentType.split(";")[2]
+            
+            # is a sop vop network
+            if parentClass == "sop":
+                if c.replace(" ", "").startswith("hou_parent") and not houNodeFound:
+                    houNodeFound = True
+                    outPyCode += c + "\n"
+                    outPyCode += "container = hou.node('/obj').createNode('geo', run_init_scripts=False)\n"
+                    outPyCode += "container.setName('{0}_container_' + '_from_{1}', unique_name=True)\n".format(nodeName, str(sender))
+                    outPyCode += "container.appendComment('HCom:')\n"
+                    outPyCode += "container.appendComment('{0}')\n".format(comment)
+                    outPyCode += "hou_parent = container.createNode('{0}', run_init_scripts=False)\n".format(parentTypeContainer)
+                else:
+                    outPyCode += c + "\n"
+            
+            # it's a material network      
+            elif parentClass == "material":
+                if c.replace(" ", "").startswith("hou_parent") and not houNodeFound:
+                    houNodeFound = True
+                    outPyCode += c + "\n"
+                    outPyCode += "container = hou.node('/obj').createNode('geo', run_init_scripts=False)\n"
+                    outPyCode += "container.setName('{0}_container_' + '_from_{1}', unique_name=True)\n".format(nodeName, str(sender))
+                    outPyCode += "container.appendComment('HCom:')\n"
+                    outPyCode += "container.appendComment('{0}')\n".format(comment)
+                    outPyCode += "shopnet = container.createNode('shopnet', run_init_scripts=False)\n"
+                    outPyCode += "hou_parent = shopnet.createNode('{0}', run_init_scripts=False)\n".format(parentTypeContainer)
+                else:
+                    outPyCode += c + "\n"
+                    
+            # it's a cop network      
+            elif parentClass == "cop":
+                if c.replace(" ", "").startswith("hou_parent") and not houNodeFound:
+                    houNodeFound = True
+                    outPyCode += c + "\n"
+                    outPyCode += "container = hou.node('/obj').createNode('geo', run_init_scripts=False)\n"
+                    outPyCode += "container.setName('{0}_container_' + '_from_{1}', unique_name=True)\n".format(nodeName, str(sender))
+                    outPyCode += "container.appendComment('HCom:')\n"
+                    outPyCode += "container.appendComment('{0}')\n".format(comment)
+                    outPyCode += "copnet = container.createNode('cop2net', run_init_scripts=False)\n"
+                    outPyCode += "hou_parent = copnet.createNode('{0}', run_init_scripts=False)\n".format(parentTypeContainer)
+                else:
+                    outPyCode += c + "\n"
     try:
         
         exec(outPyCode)

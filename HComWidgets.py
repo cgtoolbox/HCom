@@ -155,6 +155,15 @@ class UserChatTabWidget(QtGui.QWidget):
         # target ( placeholder )
         self.targetLayout = QtGui.QHBoxLayout()
         self.targetLayout.setSpacing(5)
+            
+        self.clearTabBtn = QtGui.QPushButton("")
+        self.clearTabBtn.clicked.connect(self.clearTab)
+        self.clearTabBtn.setStyleSheet('''QPushButton#closebtn{ background-color: rgba(0,0,0,0); border: none; }''')
+        self.clearTabBtn.setFlat(True)
+        self.clearTabBtn.setToolTip("Clear messages")
+        self.clearTabBtn.setFixedSize(QtCore.QSize(32,32))
+        self.clearTabBtn.setIcon(QtGui.QIcon(ICONPATH + "clearmsg.png"))
+        self.targetLayout.addWidget(self.clearTabBtn)
         
         if not openChatRoom:
             
@@ -172,6 +181,8 @@ class UserChatTabWidget(QtGui.QWidget):
             self.targetLayout.addWidget(self.targetLbl)
             
             self.widgetList.append(self.targetLbl)
+        
+        self.targetLayout.setAlignment(QtCore.Qt.AlignLeft)
         
         self.centralLayout.addItem(self.targetLayout)
         
@@ -274,6 +285,19 @@ class UserChatTabWidget(QtGui.QWidget):
         self.centralLayout.addItem(self.actionButtonLayout)
         
         self.setLayout(self.centralLayout)
+        
+    def clearTab(self):
+        
+        nmsg = self.messageOutLayout.count()
+        if nmsg == 0: return
+        widgets = []
+        for i in range(nmsg):
+            w = self.messageOutLayout.itemAt(i)
+            widgets.append(w.widget())
+            
+        for w in widgets:
+            w.setParent(None)
+            w.deleteLater()
         
     def appendMessage(self, header, message, fromMyself=False):
         
@@ -748,7 +772,7 @@ class InputMessageBox(QtGui.QTextEdit):
         Custom message text field
     '''
     def __init__(self, parent):
-        QtGui.QTextEdit.__init__(self, parent=parent)
+        super(self.__class__, self).__init__()
         
         self.parent = parent
                     
@@ -763,4 +787,4 @@ class InputMessageBox(QtGui.QTextEdit):
             self.parent.mainUI._sendMessage(self.parent.target, str(self.toPlainText().encode('latin-1')), self.parent, self.parent.tabTargetID)
         
         else:
-            super(InputMessageBox, self).keyPressEvent(event)
+            super(self.__class__, self).keyPressEvent(event)

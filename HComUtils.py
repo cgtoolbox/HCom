@@ -202,6 +202,19 @@ def createOtl(data, sender="", settings=None):
             else:
                 outPyCode += c + "\n"
                 
+        # Change parent to dopnet for dop nodes       
+        elif parentType == "dop":
+            if c.replace(" ", "").startswith("hou_parent") and not houNodeFound:
+                houNodeFound = True
+                outPyCode += c + "\n"
+                outPyCode += "container = hou.node('/obj').createNode('geo', run_init_scripts=False)\n"
+                outPyCode += "container.setName('{0}_container_' + '_from_{1}', unique_name=True)\n".format(nodeName, str(sender))
+                outPyCode += "container.appendComment('HCom:')\n"
+                outPyCode += "container.appendComment('{0}')\n".format(comment)
+                outPyCode += "hou_parent = container.createNode('dopnet', run_init_scripts=False)\n"
+            else:
+                outPyCode += c + "\n"
+                
         # Change parent to copnet for cop nodes       
         elif parentType == "cop":
             if c.replace(" ", "").startswith("hou_parent") and not houNodeFound:

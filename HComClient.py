@@ -155,6 +155,9 @@ def sendOtl(target_clientID, sender, tabTarget):
     elif sel.__class__ == hou.CopNode:
         parentType = "cop"
         
+    elif sel.__class__ == hou.DopNode:
+        parentType = "dop"
+        
     elif sel.__class__ == hou.RopNode:
         parentType = "rop"
         

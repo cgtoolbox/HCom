@@ -22,3 +22,6 @@ LAUNCH SERVER:
 
 With python 2.7.x installed on your machine with the rpyc python library ( you can find it in the HCom archive ), simple double-click on the HComServer.py, this will launch the server.
 You can change the port used for the connection on the line 111 or the python file.
+
+Demo on vimeo => https://vimeo.com/127091487
+

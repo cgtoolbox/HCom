@@ -10,7 +10,7 @@ import HComClient
 
 HCOM_VERSION = "0.5.0"
 
-ICONPATH = os.path.dirname(__file__) + "\\HCom_Icons\\"
+ICONPATH = os.path.dirname(os.path.dirname(__file__)) + "\\HCom_Icons\\"
 HISTORY_PATH = os.path.dirname(__file__) + "\\HCom_History"
 RECEIVED_FILES_PATH = os.path.dirname(__file__) + "\\HCom_Received_Files"
 
@@ -21,19 +21,19 @@ class RecieveDataThread(QtCore.QThread):
     '''
         Thread used to update message box when a client is writing a data.
     '''
-    dataRecieved_signal = QtCore.Signal()
+    dataRecieved_signal = QtCore.Signal(object)
     
     def __init__(self):
         QtCore.QThread.__init__(self)
         
         self.dataDict = None
-        self.sender = None
+        self._sender = None
         self.settings = None
 
     def run(self):
         
-        self.workFonc(self.dataDict, self.sender, self.settings)
-        self.dataRecieved_signal.emit()
+        result = self.workFonc(self.dataDict, self.sender, self.settings)
+        self.dataRecieved_signal.emit(result)
     
     def workFonc(self, *args, **kwargs):
         return
@@ -74,13 +74,13 @@ class UiUpdaterThread(QtCore.QThread):
        Change icons states 
     '''
     # Type of UI changement
-    update_ui_signal = QtCore.Signal(str)
+    update_ui_signal = QtCore.Signal(object)
     
     # Header, Message, tabTarget
-    append_message_signal = QtCore.Signal(str, str, str)
+    append_message_signal = QtCore.Signal(object)
     
     # sender, dataType, dataDict, tabTarget
-    input_data_signal = QtCore.Signal(str, str, object, str)
+    input_data_signal = QtCore.Signal(object)
     
     # Send a data received update
     data_received_update = QtCore.Signal(object)
@@ -88,10 +88,10 @@ class UiUpdaterThread(QtCore.QThread):
     def __init__(self):
         QtCore.QThread.__init__(self)
         
-        self.data = None
-        self.messageData = None
+        self.data = {}
+        self.messageData = {}
         self.forceStop = False
-        self.inputData = None
+        self.inputData = {}
         self.dataReceivedUpdate = False
         
     def run(self):
@@ -102,20 +102,17 @@ class UiUpdaterThread(QtCore.QThread):
             if self.forceStop:
                 break
             
-            if self.data:
+            if len(self.data.keys()) > 0:
                 self.update_ui_signal.emit(self.data)
-                time.sleep(0.1)
-                self.data = None
+                self.data = {}
                 
-            if self.messageData:
-                self.append_message_signal.emit(str(self.messageData[0]), str(self.messageData[1]), str(self.messageData[2]))
-                time.sleep(0.1)
-                self.messageData = None
+            if len(self.messageData.keys()) > 0:
+                self.append_message_signal.emit(self.messageData)
+                self.messageData = {}
                 
-            if self.inputData:
-                self.input_data_signal.emit(self.inputData[0], self.inputData[1], self.inputData[2], self.inputData[3])
-                time.sleep(0.1)
-                self.inputData = None
+            if len(self.inputData.keys()) > 0:
+                self.input_data_signal.emit(self.inputData)
+                self.inputData = {}
                 
             if self.dataReceivedUpdate:
                 self.data_received_update.emit(self.dataReceivedUpdate)
@@ -131,11 +128,12 @@ class UserChatTabWidget(QtGui.QWidget):
         on a user name or when a user receive a message from a user
     '''
     
-    def __init__(self, target, openChatRoom=False, parent=None):
+    def __init__(self, target, clientType, openChatRoom=False, parent=None):
         QtGui.QWidget.__init__(self, parent=parent)
         
         self.mainUI = parent
         self.connected = self.mainUI.connected
+        self.clientType = clientType
         
         if openChatRoom:
             self.tabTargetID = target
@@ -166,7 +164,7 @@ class UserChatTabWidget(QtGui.QWidget):
         self.targetLayout.addWidget(self.clearTabBtn)
         
         if not openChatRoom:
-            
+
             self.closeBtn = QtGui.QPushButton()
             self.closeBtn.setObjectName("closebtn")
             self.closeBtn.setStyleSheet('''QPushButton#closebtn{ background-color: rgba(0,0,0,0); border: none; }''')
@@ -212,7 +210,6 @@ class UserChatTabWidget(QtGui.QWidget):
         self.widgetList.append(self.messageLine)
         
         self.messageSendBtn = QtGui.QPushButton("Send Message")
-        #self.messageSendBtn.setFixedHeight(50)
         self.messageSendBtn.clicked.connect(lambda: self.mainUI._sendMessage(self.target, str(self.messageLine.toPlainText().encode('latin-1')), self, self.tabTargetID))
         self.messageSendBtn.setDisabled(not self.connected)
         self.messageLayout.addWidget(self.messageSendBtn)
@@ -230,36 +227,6 @@ class UserChatTabWidget(QtGui.QWidget):
         sendLblW = QtGui.QLabel(sendLbl)
         
         self.actionButtonLayout.addWidget(sendLblW)
-        
-        self.sendotlBtn = QtGui.QPushButton("")
-        self.sendotlBtn.setToolTip("Send houdini node or digital asset")
-        self.sendotlBtn.setIconSize(QtCore.QSize(32,32))
-        self.sendotlBtn.setFixedSize(40,40)
-        self.sendotlBtn.setIcon(QtGui.QIcon(ICONPATH + "digitalasset.png"))
-        self.sendotlBtn.clicked.connect(lambda: self.mainUI._sendOtl(self.target, self.tabTargetID, self))
-        self.sendotlBtn.setDisabled(not self.connected)
-        self.actionButtonLayout.addWidget(self.sendotlBtn)
-        self.widgetList.append(self.sendotlBtn)
-        
-        self.sendSettingsBtn = QtGui.QPushButton("")
-        self.sendSettingsBtn.setToolTip("Send houdini node or digital asset settings")
-        self.sendSettingsBtn.setIconSize(QtCore.QSize(32,32))
-        self.sendSettingsBtn.setFixedSize(40,40)
-        self.sendSettingsBtn.setIcon(QtGui.QIcon(ICONPATH + "digitalasset_settings.png"))
-        self.sendSettingsBtn.clicked.connect(lambda: self.mainUI._sendSettings(self.target, self.tabTargetID, self))
-        self.sendSettingsBtn.setDisabled(not self.connected)
-        self.actionButtonLayout.addWidget(self.sendSettingsBtn)
-        self.widgetList.append(self.sendSettingsBtn)
-        
-        self.sendBgeoBtn = QtGui.QPushButton("")
-        self.sendBgeoBtn.setToolTip("Send bgeo mesh")
-        self.sendBgeoBtn.setIconSize(QtCore.QSize(32,32))
-        self.sendBgeoBtn.setFixedSize(40,40)
-        self.sendBgeoBtn.setIcon(QtGui.QIcon(ICONPATH + "bgeo.png"))
-        self.sendBgeoBtn.setDisabled(not self.connected)
-        self.sendBgeoBtn.clicked.connect(lambda: self.mainUI._sendBgeo(self.target, self.tabTargetID, self))
-        self.actionButtonLayout.addWidget(self.sendBgeoBtn)
-        self.widgetList.append(self.sendBgeoBtn)
         
         self.sendObjBtn = QtGui.QPushButton("")
         self.sendObjBtn.setToolTip("Send obj mesh")
@@ -370,16 +337,17 @@ class UserListDockWidget(QtGui.QWidget):
         
         self.setWindowTitle("User Connected:")
         
-        self.userListW = UserListWidget(self.session_ID, mainUI = self.mainUI, parent=self)
+        self.userListW = UserListWidget(self.session_ID, clientType=self.mainUI.CLIENT_TYPE, mainUI=self.mainUI, parent=self)
         
         if self.hcc:
             try:
                 users = self.hcc.root.getAllClients().keys()
+                usersType = self.hcc.root.getAllClientTypes()
             except  EOFError:
                 pass
             else:
                 for k in users:
-                    self.userListW._addUser(k)
+                    self.userListW._addUser(k, usersType[k])
             
         mainLayout.addItem(self.userListW)
         
@@ -415,10 +383,10 @@ class UserListDockWidget(QtGui.QWidget):
         
         self.setLayout(mainLayout)
         
-    def _updateUserList(self, ID, action):
+    def _updateUserList(self, ID, action, clientType):
         
         if action == "join":
-            self.userListW._addUser(ID)
+            self.userListW._addUser(ID, clientType)
         elif action == "left":
             self.userListW._removeUser(ID)
             
@@ -443,11 +411,12 @@ class UserListWidget(QtGui.QVBoxLayout):
     '''
         User list connected, used only in UserListDockWidget
     '''
-    def __init__(self, session_ID, mainUI=None, parent=None):
+    def __init__(self, session_ID, clientType="None", mainUI=None, parent=None):
         
         QtGui.QVBoxLayout.__init__(self)
         self.setSpacing(5)
         self.session_ID = session_ID
+        self.clientType = clientType
         
         self.mainUi = mainUI
         
@@ -458,6 +427,7 @@ class UserListWidget(QtGui.QVBoxLayout):
         
         # user connected list
         self.userList = QtGui.QListWidget(parent=parent)
+        self.userList.setSpacing(2)
         self.userList.itemDoubleClicked.connect(self._selItem)
         splitter.addWidget(self.userList)
         
@@ -472,19 +442,24 @@ class UserListWidget(QtGui.QVBoxLayout):
         
     def _selItem(self):
         
-        idSelected = self.userList.currentItem().text()
+        curItem = self.userList.currentItem()
+        idSelected = curItem.text()
         if not "(me)" in idSelected:
-            self.mainUi._addUserTab(str(idSelected), fromUserList=True)
+            self.mainUi._addUserTab(str(idSelected), curItem.clientType, fromUserList=True)
         
-    def _addUser(self, ID):
+    def _addUser(self, ID, clientType):
                
         IDtoAdd = ID
+        
         if ID == self.session_ID:
             IDtoAdd = "(me) " + ID
         
+        userObj = UserItem(IDtoAdd, clientType)
+        
         if ID not in self.ITEM_IDS:
             self.ITEM_IDS.append(IDtoAdd)
-        self.userList.addItem(IDtoAdd)
+
+        self.userList.addItem(userObj)
 
     def _removeUser(self, ID):
         
@@ -498,6 +473,17 @@ class UserListWidget(QtGui.QVBoxLayout):
     
     def clearUserList(self):
         self.userList.clear()
+        
+class UserItem(QtGui.QListWidgetItem):
+    
+    def __init__(self, text, clientType=[None,None]):
+        QtGui.QListWidgetItem.__init__(self)
+        
+        self.ID = text
+        self.clientType = clientType
+        self.setIcon(QtGui.QIcon(ICONPATH + str(self.clientType[0]).lower() + ".png"))
+        self.setToolTip(str(self.clientType[-1]))
+        self.setText(text)
 
 
 class HelpWindow(QtGui.QDialog):
@@ -551,17 +537,13 @@ class SettingsWindow(QtGui.QDialog):
         self.serverPort = QtGui.QLineEdit(str(initValues["PORT"]))
         serverPortlayout.addWidget(self.serverPort)
         settingsLayout.addItem(serverPortlayout)
-        
-        self.switchToManualMode = QtGui.QCheckBox("Auto Switch To Manual Update")
-        self.switchToManualMode.setChecked(initValues["SWITCH_TO_MANUAL_UPDATE"])
-        settingsLayout.addWidget(self.switchToManualMode)
-        
+
         self.saveHistory = QtGui.QCheckBox("Save Conversation history")
-        self.saveHistory.setChecked(initValues["SAVE_HISTORY"])
+        self.saveHistory.setChecked(bool(initValues["SAVE_HISTORY"]))
         settingsLayout.addWidget(self.saveHistory)
         
         self.playSounds = QtGui.QCheckBox("Play Sounds")
-        self.playSounds.setChecked(initValues["PLAY_SOUND"])
+        self.playSounds.setChecked(bool(initValues["PLAY_SOUND"]))
         settingsLayout.addWidget(self.playSounds)
         
         buttonsLayout = QtGui.QHBoxLayout()
@@ -584,7 +566,6 @@ class SettingsWindow(QtGui.QDialog):
         
         self.SETTINGS["SERVER"] = str(self.serverAdress.text())
         self.SETTINGS["PORT"] = str(self.serverPort.text())
-        self.SETTINGS["SWITCH_TO_MANUAL_UPDATE"] = str(self.switchToManualMode.isChecked())
         self.SETTINGS["PLAY_SOUND"] = str(self.playSounds.isChecked())
         
         HComUtils.writeIni(self.SETTINGS)
@@ -656,13 +637,13 @@ class MessageBox(QtGui.QWidget):
             self.dataType = ""
             self.dataDict = {}
             
-        self.sender = sender
+        self._sender = sender
         self.mainUi = mainUi
         
         self.workThread = RecieveDataThread()
         self.workThread.dataRecieved_signal.connect(self.endJob)
         self.workThread.dataDict = self.dataDict
-        self.workThread.sender = self.sender
+        self.workThread._sender = self._sender
         
         self.setObjectName("msgw")
         
@@ -729,15 +710,9 @@ class MessageBox(QtGui.QWidget):
         self.activityBar.setVisible(True)
         
         self.workThread.settings = settings
-        
-        # Send a setting of parms for the given node selection type
-        if self.dataType == "settings":
-            
-            self.workThread.workFonc = HComUtils.setOtlSettings
-            self.workThread.start()
-        
+
         # Send an otl or a node
-        elif self.dataType == "otl":
+        if self.dataType == "otl":
             
             self.workThread.workFonc = HComUtils.createOtl
             self.workThread.start()
@@ -758,7 +733,22 @@ class MessageBox(QtGui.QWidget):
         self.cancelBtn.setDisabled(True)
             
         
-    def endJob(self):
+    def endJob(self, cmd=None):
+        
+        if cmd:
+            if cmd["CMD_TYPE"] == "mel":
+                melcmd = cmd["DATA"]
+                try:
+                    import maya.mel as mel
+                    mel.eval(melcmd)
+                except Exception as e:
+                    print("ERROR MEL COMMAND: " + str(e))
+                    
+            elif cmd["CMD_TYPE"] == "python":
+                if cmd["CMD"] == "import_obj":
+                    import maya.cmds as cmds
+                    cmds.file(cmd["DATA"],i=True,dns=True)
+                
         
         HComClient.sendDataReceivedInfo(self.sender, self.mainUi.ID, [True, self.dataType], self.mainUi.ID)
         self.activityBar.setMaximum(1)

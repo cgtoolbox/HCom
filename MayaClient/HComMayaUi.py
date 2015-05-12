@@ -1,4 +1,6 @@
-import hou
+from maya.app.general.mayaMixin import MayaQWidgetDockableMixin
+import maya.cmds as cmds
+
 import getpass
 import time
 import datetime
@@ -15,19 +17,20 @@ reload(HComWidgets)
 import HComUtils
 reload(HComUtils)
 
-if not hasattr(hou.session, "HCOM_TABS"):
-    hou.session.HCOM_TABS = {}
+from _globals import MayaGlobals
 
-global HComMainUi
-HComMainUi = None
-
-ICONPATH = os.path.dirname(__file__) + "\\HCom_Icons\\"
+ICONPATH = os.path.dirname(os.path.dirname(__file__)) + "\\HCom_Icons\\"
 RECEIVED_FILES = os.path.dirname(__file__) + "\\HCom_Received_Files\\"
 
-class HComMainView(QtGui.QFrame):
+class HComMayaMainView(MayaQWidgetDockableMixin, QtGui.QWidget):
     
-    def __init__(self, connected):
-        QtGui.QFrame.__init__(self)
+    def __init__(self, connected, parent=None):
+        super(HComMayaMainView, self).__init__(parent=parent)
+        
+        self.setWindowTitle("HCom")
+        
+        self.CLIENT_TYPE = self._fetchHengine()
+        self.setWindowFlags(QtCore.Qt.Window)
         
         self.updateUiThread = HComWidgets.UiUpdaterThread()
         self.updateUiThread.update_ui_signal.connect(self._updateUi)
@@ -37,8 +40,8 @@ class HComMainView(QtGui.QFrame):
         self.updateUiThread.start()
         
         self.connected = connected
-        if hou.session.HCOM_TABS != {}:
-            self.USER_TABS = hou.session.HCOM_TABS
+        if MayaGlobals.HCOM_TABS != {}:
+            self.USER_TABS = MayaGlobals.HCOM_TABS
         else:
             self.USER_TABS = {}
         
@@ -46,8 +49,8 @@ class HComMainView(QtGui.QFrame):
             self.hcc = False
             self.ID = ""
         else:
-            self.hcc = hou.session.HCOMCLIENT[0]
-            self.ID = hou.session.HCOMCLIENT[1]
+            self.hcc = MayaGlobals.HCOMCLIENT[0]
+            self.ID = MayaGlobals.HCOMCLIENT[1]
         
         self.mainLayout = QtGui.QVBoxLayout()
         self.mainLayout.setSpacing(10)
@@ -67,6 +70,16 @@ class HComMainView(QtGui.QFrame):
 
         self.setLayout(self.mainLayout)
     
+    def _fetchHengine(self):
+        
+        v = cmds.about(version=True)
+        hengineInfo = ""
+        mayaType = HComUtils.CLIENT_TYPE.MAYA_NO_HENGINE
+        if "houdiniEngine" in cmds.pluginInfo( query=True, listPlugins=True ):
+            hengineInfo = " (Houdini Engine Loaded)"
+            mayaType = HComUtils.CLIENT_TYPE.MAYA_HENGINE
+            
+        return [mayaType, "Maya " + str(v) + hengineInfo]
 
     def __init_header(self):
         
@@ -84,8 +97,8 @@ class HComMainView(QtGui.QFrame):
         self.ID_lbl.setDisabled(self.connected)
         self.titleLayout.addWidget(self.ID_lbl)
         
-        if hasattr(hou.session, "HCOM_CUR_ID"):
-            defaultName = hou.session.HCOM_CUR_ID
+        if MayaGlobals.CUR_ID:
+            defaultName = MayaGlobals.CUR_ID
         else:
             defaultName = getpass.getuser().replace(".", "_") + "_" + socket.gethostname().split("-")[0]
         
@@ -150,40 +163,44 @@ class HComMainView(QtGui.QFrame):
     def __init_centralWidget(self):
         
         self.centralTabWidget = QtGui.QTabWidget()
-        self.centralTabWidget.setStyleSheet('''QTabWidget{background-color:red;}''')
         self.centralTabWidget.currentChanged.connect(self._updateTabIcon)
         
-        if hou.session.HCOM_TABS != {}:
-            if "OPEN_CHAT_ROOM" in hou.session.HCOM_TABS.keys():
-                tab = hou.session.HCOM_TABS["OPEN_CHAT_ROOM"]
+        if MayaGlobals.HCOM_TABS != {}:
+            if "OPEN_CHAT_ROOM" in MayaGlobals.HCOM_TABS.keys():
+                tab = MayaGlobals.HCOM_TABS["OPEN_CHAT_ROOM"]
                 self.USER_TABS["OPEN_CHAT_ROOM"] = tab
                 self.openChatRoom = tab
                 self.centralTabWidget.addTab(self.openChatRoom, "Open Chat Room")
                 
-            for k in hou.session.HCOM_TABS.keys():
+            for k in MayaGlobals.HCOM_TABS.keys():
                 if k == "OPEN_CHAT_ROOM": continue
-                tab = hou.session.HCOM_TABS[k]
+                tab = MayaGlobals.HCOM_TABS[k]
                 self.centralTabWidget.addTab(tab, k)
         else:
-            self.openChatRoom = HComWidgets.UserChatTabWidget("OPEN_CHAT_ROOM", openChatRoom=True, parent=self)
+            self.openChatRoom = HComWidgets.UserChatTabWidget("OPEN_CHAT_ROOM", clientType="None", openChatRoom=True, parent=self)
             self.centralTabWidget.addTab(self.openChatRoom, "Open Chat Room")
             self.USER_TABS["OPEN_CHAT_ROOM"] = self.openChatRoom
-            hou.session.HCOM_TABS["OPEN_CHAT_ROOM"] = self.openChatRoom
+            MayaGlobals.HCOM_TABS["OPEN_CHAT_ROOM"] = self.openChatRoom
         
         self.splitter.addWidget(self.centralTabWidget)
 
-    def _getInputData(self, sender, dataType, data, tarbTarget):
+    def _getInputData(self, in_data):
         '''
             Fetch data from client and add confirmation widget to the chat
         '''
         
-        if not tarbTarget in self.USER_TABS.keys():
+        sender = in_data["SENDER"]
+        dataType = in_data["DATA_TYPE"]
+        data = in_data["DATA"]
+        tabTarget = in_data["TAB_TARGET"]
+        
+        if not tabTarget in self.USER_TABS.keys():
             return False
         
         curTab = self.centralTabWidget.currentWidget()
         
-        if self.USER_TABS[tarbTarget] != curTab:
-            targetTabIdx = self.centralTabWidget.indexOf(self.USER_TABS[tarbTarget])
+        if self.USER_TABS[tabTarget] != curTab:
+            targetTabIdx = self.centralTabWidget.indexOf(self.USER_TABS[tabTarget])
             self.centralTabWidget.tabBar().setTabIcon(targetTabIdx, QtGui.QIcon(ICONPATH + "unreadmsg.png"))
             
             settings = HComUtils.readIni()
@@ -192,16 +209,17 @@ class HComMainView(QtGui.QFrame):
                     s = QtGui.QSound(ICONPATH + "gnm.wav")
                     s.play()
             
-        self.USER_TABS[tarbTarget].appendInputBox(sender, dataType, data)
+        self.USER_TABS[tabTarget].appendInputBox(sender, dataType, data)
         
 
     def _updateUi(self, data):
         '''
             This methode is triggered by the update UI thread from HComWidget
         '''
-        data = data.split(";")
-        action = data[0]
-        ID = data[1]
+        
+        action = data["ACTION"]
+        ID = data["ID"]
+        clientType = data["CLIENT_TYPE"]
         
         now = datetime.datetime.now()
         
@@ -210,38 +228,42 @@ class HComMainView(QtGui.QFrame):
             
         elif action == "join":
             if ID != self.ID:
-                self.userListWidget._updateUserList(ID, action)
+                self.userListWidget._updateUserList(ID, action, clientType)
                 IDLabel = "<FONT COLOR=#4b5488><i>{1}:{2} {0} join</i></FONT>".format(ID, str(now.hour).zfill(2), str(now.minute).zfill(2))
                 self.userListWidget.userListW.outuserInfo.append(IDLabel)
         
         elif action == "left":
             if ID != self.ID:
-                self.userListWidget._updateUserList(ID, action)
+                self.userListWidget._updateUserList(ID, action, clientType)
                 IDLabel = "<FONT COLOR=#4b5488><i>{1}:{2} {0} left</i></FONT>".format(ID, str(now.hour).zfill(2), str(now.minute).zfill(2))
                 self.userListWidget.userListW.outuserInfo.append(IDLabel)
                 self._removeUserTab(ID)
                 
         elif action == "add_tab":
-            self._addUserTab(ID)
+            self._addUserTab(ID, clientType)
             
 
     def _dataReveivedUpdate(self, data):
         
-        self._appendMessageToTab(data[2], "", data[1])
+        self._appendMessageToTab(data)
             
     def _updateTabIcon(self, idx):
         
         self.centralTabWidget.tabBar().setTabIcon(idx, QtGui.QIcon(""))
             
-    def _appendMessageToTab(self, tarbTarget, messageHeader, message):
+    def _appendMessageToTab(self, data):
         
-        if not tarbTarget in self.USER_TABS.keys():
+        tabTarget = data["TAB_TARGET"]
+        sender = data["SENDER"]
+        message = data["MESSAGE"]
+
+        if not tabTarget in self.USER_TABS.keys():
             return False
         
         curTab = self.centralTabWidget.currentWidget()   
         
-        if self.USER_TABS[tarbTarget] != curTab:
-            targetTabIdx = self.centralTabWidget.indexOf(self.USER_TABS[tarbTarget])
+        if self.USER_TABS[tabTarget] != curTab:
+            targetTabIdx = self.centralTabWidget.indexOf(self.USER_TABS[tabTarget])
             self.centralTabWidget.tabBar().setTabIcon(targetTabIdx, QtGui.QIcon(ICONPATH + "unreadmsg.png"))
             
             settings = HComUtils.readIni()
@@ -250,9 +272,9 @@ class HComMainView(QtGui.QFrame):
                     s = QtGui.QSound(ICONPATH + "gnm.wav")
                     s.play()
             
-        self.USER_TABS[tarbTarget].appendMessage(messageHeader, message)
+        self.USER_TABS[tabTarget].appendMessage(sender, message)
         
-        hou.session.HCOM_TABS = self.USER_TABS
+        MayaGlobals.HCOM_TABS = self.USER_TABS
         
     def _sendMessage(self, targets, message, tab, tabTarget):
         
@@ -340,7 +362,7 @@ class HComMainView(QtGui.QFrame):
 
         tab.appendDataSendBox(msg, targets, self.ID, tabTarget, HComClient.sendPic, imagePath = imageFile )
         
-    def _addUserTab(self, target_ID, fromUserList=False):
+    def _addUserTab(self, target_ID, clientType, fromUserList=False):
         '''
             Add a new user tab for private conversation
             Must be sent from updaterUiThread
@@ -353,7 +375,7 @@ class HComMainView(QtGui.QFrame):
             self.centralTabWidget.setCurrentWidget(self.USER_TABS[target_ID])
             
         else:
-            tab = HComWidgets.UserChatTabWidget(str(target_ID), parent=self)
+            tab = HComWidgets.UserChatTabWidget(str(target_ID), clientType=clientType,  parent=self)
             self.USER_TABS[target_ID] = tab
             
             self.centralTabWidget.addTab(tab, str(target_ID))
@@ -361,7 +383,7 @@ class HComMainView(QtGui.QFrame):
             if fromUserList:
                 self.centralTabWidget.setCurrentWidget(tab)
                 
-        hou.session.HCOM_TABS = self.USER_TABS
+        MayaGlobals.HCOM_TABS = self.USER_TABS
 
     def _removeUserTab(self, ID):
         
@@ -369,13 +391,15 @@ class HComMainView(QtGui.QFrame):
             self.USER_TABS[ID].close()
             self.USER_TABS[ID].deleteLater()
             del(self.USER_TABS[ID])
-            hou.session.HCOM_TABS = self.USER_TABS
+            MayaGlobals.HCOM_TABS = self.USER_TABS
            
     def _connectToHCom(self):
         
+        self.CLIENT_TYPE = self._fetchHengine()
+        
         ID = str(self.ID_line.text())
-        hou.session.HCOM_CUR_ID = ID
-        result = HComClient.connectToServer(ID)
+        MayaGlobals.CUR_ID = ID
+        result = HComClient.connectToServer(ID=ID, clientType=self.CLIENT_TYPE)
         
         if not result:
             return False
@@ -383,14 +407,18 @@ class HComMainView(QtGui.QFrame):
         self.ID = ID
         
         if result == (False, False):
-            hou.ui.displayMessage("Error: HCom server can't be reached !", severity=hou.severityType.Error)
+            ask = QtGui.QMessageBox(parent=self)
+            ask.setText("Error: HCom server can't be reached !")
+            ask.setIcon(QtGui.QMessageBox.Critical)
+            ask.exec_()
             return False
         
-        try:
-            hou.session.HCOMCLIENT
-        except AttributeError:
-            hou.ui.displayMessage("Error: HCom server can't be reached !", severity=hou.severityType.Error)
-            print("ERROR: can not connect to server.")
+        if not MayaGlobals.HCOMCLIENT:
+            ask = QtGui.QMessageBox(parent=self)
+            ask.setText("Error: HCom server can't be reached !")
+            ask.setIcon(QtGui.QMessageBox.Critical)
+            ask.exec_()
+            return False
         else:
             self._switchConnection(True)
             
@@ -401,7 +429,7 @@ class HComMainView(QtGui.QFrame):
             if not serverDisconnect:
                 self.userListWidget.userListW.outuserInfo.clear()
             
-            self.hcc = hou.session.HCOMCLIENT[0]
+            self.hcc = MayaGlobals.HCOMCLIENT[0]
             self.connected = True
             
             self.userListWidget.session_ID = self.ID
@@ -416,8 +444,10 @@ class HComMainView(QtGui.QFrame):
             
             self.userListWidget.userListW.clearUserList()
             
-            for user in self.hcc.root.getAllClients().keys():
-                self.userListWidget._updateUserList(user, "join")
+            allClients, allClientTypes = self.hcc.root.getAllCientInfos()
+            for user in allClients.keys():
+                clientType = allClientTypes[user]
+                self.userListWidget._updateUserList(user, "join", clientType)
             
             self.title.setText("Connected")
             
@@ -448,8 +478,8 @@ class HComMainView(QtGui.QFrame):
             self.title.setText("Not Connected")
             
             self.connected = False
-            if hasattr(hou.session, "HCOMCLIENT"):
-                del(hou.session.HCOMCLIENT)
+            if MayaGlobals.HCOMCLIENT:
+                MayaGlobals.HCOMCLIENT = None
     
     def _showSettings(self):
         
@@ -460,37 +490,29 @@ class HComMainView(QtGui.QFrame):
         if str(self.ID_line.text()) == "2501":
             self.ID_line.setText(HComUtils.rdnname())
     
-def main():
+def main(parent=None):
     
-    global HComMainUi
-    
-    try:
-        hou.session.HCOMCLIENT
-    except AttributeError:
-        view = HComMainView(False)
-        HComMainUi = view
+    if not MayaGlobals.HCOMCLIENT:
+        view = HComMayaMainView(False, parent=parent)
+        MayaGlobals.MAIN_UI = view
         return view
     else:
-        view = HComMainView(True)
-        HComMainUi = view
+        view = HComMayaMainView(True, parent=parent)
+        MayaGlobals.MAIN_UI = view
         return view
 
 ######################################################################
-def receiveData(sender, data, dataType, tabTarget):
+def receiveData(sender, data, dataType, tabTarget, senderType=[None, None]):
     
     settings = HComUtils.readIni()
     # Send a text message
     if dataType == "msg":
         
         if tabTarget == "" or tabTarget == "OPEN_CHAT_ROOM":
-            HComMainUi.updateUiThread.messageData = ["OPEN_CHAT_ROOM",
-                                                     sender,
-                                                     "   {0}\n".format(data)]
+            MayaGlobals.MAIN_UI.updateUiThread.messageData = {"TAB_TARGET":"OPEN_CHAT_ROOM", "SENDER":sender, "MESSAGE":"{0}\n".format(data)}
         else:
-            sendAddTabToThread(tabTarget)
-            HComMainUi.updateUiThread.messageData = [str(tabTarget),
-                                             sender,
-                                             "   {0}\n".format(data)]
+            sendAddTabToThread(tabTarget, senderType)
+            MayaGlobals.MAIN_UI.updateUiThread.messageData = {"TAB_TARGET":str(tabTarget), "SENDER":sender, "MESSAGE":"{0}\n".format(data)}
             
         if settings["SAVE_HISTORY"]:
             now = datetime.datetime.now()
@@ -499,23 +521,23 @@ def receiveData(sender, data, dataType, tabTarget):
     
     # Send a setting of parms for the given node selection type
     elif dataType == "settings":
-        sendAddTabToThread(tabTarget)
-        HComMainUi.updateUiThread.inputData = [sender, "settings", data, tabTarget]
+        sendAddTabToThread(tabTarget, senderType)
+        MayaGlobals.MAIN_UI.updateUiThread.inputData = {"SENDER":sender, "DATA_TYPE":dataType, "DATA":data, "TAB_TARGET":tabTarget, "SENDER_TYPE":senderType}
     
     # Send an otl or a node
     elif dataType == "otl":
-        sendAddTabToThread(tabTarget)
-        HComMainUi.updateUiThread.inputData = [sender, "otl", data, tabTarget]
+        sendAddTabToThread(tabTarget, senderType)
+        MayaGlobals.MAIN_UI.updateUiThread.inputData = {"SENDER":sender, "DATA_TYPE":dataType, "DATA":data, "TAB_TARGET":tabTarget, "SENDER_TYPE":senderType}
             
     # Bgeo mesh
     elif dataType == "mesh":
-        sendAddTabToThread(tabTarget)
-        HComMainUi.updateUiThread.inputData = [sender, "mesh", data, tabTarget]
+        sendAddTabToThread(tabTarget, senderType)
+        MayaGlobals.MAIN_UI.updateUiThread.inputData = {"SENDER":sender, "DATA_TYPE":dataType, "DATA":data, "TAB_TARGET":tabTarget, "SENDER_TYPE":senderType}
  
     # Pictures
     elif dataType == "pic":
-        sendAddTabToThread(tabTarget)
-        HComMainUi.updateUiThread.inputData = [sender, "pic", data, tabTarget]
+        sendAddTabToThread(tabTarget, senderType)
+        MayaGlobals.MAIN_UI.updateUiThread.inputData = {"SENDER":sender, "DATA_TYPE":dataType, "DATA":data, "TAB_TARGET":tabTarget, "SENDER_TYPE":senderType}
     
     # Data received
     
@@ -544,22 +566,23 @@ def receiveData(sender, data, dataType, tabTarget):
         elif data[1] == "pic":
             msg = timestamp + "Image File " + statue
             
-        HComMainUi.updateUiThread.dataReceivedUpdate = [sender, msg, tabTarget]
+        MayaGlobals.MAIN_UI.updateUiThread.dataReceivedUpdate = {"SENDER":"", "MESSAGE":msg, "TAB_TARGET":tabTarget, "SENDER_TYPE":senderType}
         
-def sendAddTabToThread(tabTarget):
-
+def sendAddTabToThread(tabTarget, clientType):
+    
     # Create a new tab if target tab is not found
-    if not tabTarget in HComMainUi.USER_TABS.keys():
-        HComMainUi.updateUiThread.data = "add_tab;{0}".format(tabTarget)
+    if not tabTarget in MayaGlobals.MAIN_UI.USER_TABS.keys():
         
-        while not tabTarget in HComMainUi.USER_TABS.keys():
+        MayaGlobals.MAIN_UI.updateUiThread.data = {"ACTION":"add_tab", "ID":tabTarget, "CLIENT_TYPE":clientType}
+        
+        while not tabTarget in MayaGlobals.MAIN_UI.USER_TABS.keys():
                 time.sleep(0.1)
         
-def receiveIDUpdate(ID, action):
+def receiveIDUpdate(ID, action, clientType):
     
     if action == "left":
-        HComMainUi.updateUiThread.data = "left;{0}".format(ID)
+        MayaGlobals.MAIN_UI.updateUiThread.data = {"ACTION":"left", "ID":ID, "CLIENT_TYPE":clientType}
         
     elif action == "join":
-        HComMainUi.updateUiThread.data = "join;{0}".format(ID)
+        MayaGlobals.MAIN_UI.updateUiThread.data = {"ACTION":"join", "ID":ID, "CLIENT_TYPE":clientType}
     

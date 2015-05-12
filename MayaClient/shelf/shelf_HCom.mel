@@ -1,0 +1,35 @@
+global proc shelf_HCom () {
+    global string $gBuffStr;
+    global string $gBuffStr0;
+    global string $gBuffStr1;
+
+
+    shelfButton
+        -enableCommandRepeat 1
+        -enable 1
+        -width 45
+        -height 45
+        -manage 1
+        -visible 1
+        -preventOverride 0
+        -annotation "HCom Maya Client" 
+        -enableBackground 0
+        -align "center" 
+        -label "HCom Maya Client" 
+        -labelOffset 0
+        -font "plainLabelFont" 
+        -imageOverlayLabel "HCom" 
+        -overlayLabelColor 0.8 0.8 0.8 
+        -overlayLabelBackColor 0 0 0 0.2 
+        -image "D:/WORK_DEV/_Github/HCom/HCom_Icons/hcom.png" 
+        -image1 "D:/WORK_DEV/_Github/HCom/HCom_Icons/hcom.png" 
+        -style "iconOnly" 
+        -marginWidth 1
+        -marginHeight 1
+        -command "from maya import OpenMayaUI as omui \nfrom shiboken import wrapInstance \nfrom PySide import QtGui\nfrom HCom.MayaClient import HComMayaUi\nreload(HComMayaUi)\n\nmayaMainWindowPtr = omui.MQtUtil.mainWindow() \nmayaMainWindow= wrapInstance(long(mayaMainWindowPtr), QtGui.QMainWindow)\n\nui = HComMayaUi.main()\nui.show(dockable=True)\n" 
+        -sourceType "python" 
+        -commandRepeatable 1
+        -flat 1
+    ;
+
+} 

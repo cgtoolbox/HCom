@@ -12,7 +12,9 @@ if not pysidePath in sys.path:
     sys.path.append(pysidePath)
 
 import HComUi
+
 import HComUtils
+reload(HComUtils)
 
 global server_conn
 server_conn = None
@@ -41,16 +43,16 @@ class HCom_ClientService(rpyc.Service):
     def on_disconnect(self):
         server_is_disconnected()
     
-    def exposed_catchData(self, dataType, sender, data, tabTarget):
+    def exposed_catchData(self, dataType, sender, data, tabTarget, clientType):
 
-        HComUi.receiveData(sender, data, dataType, tabTarget)
+        HComUi.receiveData(sender, data, dataType, tabTarget, clientType)
         
-    def exposed_sendIDUpdate(self, ID, action):
+    def exposed_sendIDUpdate(self, ID, action, clientType):
         
-        HComUi.receiveIDUpdate(ID, action)
+        HComUi.receiveIDUpdate(ID, action, clientType)
 
 
-def connectToServer(ID=None):
+def connectToServer(ID=None, clientType="NONE"):
     '''
         Try to connect to the server and launch the BG thread service
     '''
@@ -78,7 +80,7 @@ def connectToServer(ID=None):
     server_id = ID
     
     bgsrv = rpyc.BgServingThread(server_conn)
-    result = server_conn.root.registerClient(ID)
+    result = server_conn.root.registerClient(ID, clientType)
     
     if result:
         return ID
@@ -102,16 +104,16 @@ def _sendData(target_clientID, sender, data, datatype, tabTarget):
         return result
     except AttributeError:
         return False
-        print("ERROR: client {0} not found.".format(target_clientID))
+        print("ERROR: client " + target_clientID + " not found.")
 
 @threaded_sendata  
-def sendMessage(target_clientID, sender, message, tabTarget):
+def sendMessage(target_clientID, sender, message, tabTarget, ):
     
     result = _sendData(target_clientID, sender, message, "msg", tabTarget)
     return result
 
 
-def sendSettings(target_clientID, sender, tabTarget):
+def sendSettings(target_clientID, sender, tabTarget, tabClientType=None):
     
     settingsData = {}
     
@@ -134,13 +136,23 @@ def sendSettings(target_clientID, sender, tabTarget):
     return [result, settingsData["OTL_TYPE"] + " settings"]
 
  
-def sendOtl(target_clientID, sender, tabTarget):
+def sendOtl(target_clientID, sender, tabTarget, tabClientType=None):
     
     n = hou.selectedNodes()
     if not n:
         hou.ui.displayMessage("Nothing is selected")
         return False
     sel = n[0]
+    
+    if tabClientType[0] != HComUtils.CLIENT_TYPE.HOUDINI:
+        if not sel.type().definition():
+            hou.ui.displayMessage("Invalid node")
+            return False
+        
+        else:
+            if hou.expandString("$HH") in sel.type().definition().libraryFilePath():
+                hou.ui.displayMessage("Invalid node")
+                return False
     
     parentType = ""
     if sel.__class__ == hou.SopNode:
@@ -197,7 +209,7 @@ def sendOtl(target_clientID, sender, tabTarget):
         return False
 
 
-def sendBgeo(target_clientID, sender, tabTarget, isObj=False):
+def sendBgeo(target_clientID, sender, tabTarget, isObj=False, tabClientType=None):
     
     n = hou.selectedNodes()
     if not n:
@@ -244,12 +256,12 @@ def sendBgeo(target_clientID, sender, tabTarget, isObj=False):
         return False
 
 
-def sendObjMesh(target_clientID, sender, tabTarget):
+def sendObjMesh(target_clientID, sender, tabTarget, tabClientType=None):
     result = sendBgeo(target_clientID, sender, tabTarget, isObj=True)
     return result
 
 
-def sendPic(target_clientID, sender, tabTarget, imagePath):
+def sendPic(target_clientID, sender, tabTarget, imagePath, tabClientType=None):
     
     with open(imagePath, 'rb') as f:
         imageData = f.read()
@@ -307,7 +319,7 @@ def disconnect():
     except:
         pass
     server_conn = None
-    HComUi.HComMainUi.updateUiThread.data = "server_disconnect;None"
+    HComUi.HComMainUi.updateUiThread.data = {"ACTION":"server_disconnect", "ID":None, "CLIENT_TYPE":None}
     
     
 def server_is_disconnected():

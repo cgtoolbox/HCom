@@ -4,9 +4,9 @@ import subprocess
 import random
 import threading
 
-HISTORY_FOLDER = os.path.dirname(os.path.dirname(__file__)) + "\\HCom_History\\"
+HISTORY_FOLDER = os.path.dirname(__file__) + "\\HCom_History\\"
 ICONPATH = os.path.dirname(os.path.dirname(__file__)) + "\\HCom_Icons\\"
-RECEIVED_FILES = os.path.dirname(os.path.dirname(__file__))  + "\\HCom_Received_Files\\"
+RECEIVED_FILES = os.path.dirname(__file__)  + "\\HCom_Received_Files\\"
 
 def readIni():
     

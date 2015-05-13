@@ -11,7 +11,7 @@ reload(HComUtils)
 
 HCOM_VERSION = "0.5.0"
 
-ICONPATH = os.path.dirname(os.path.dirname(__file__)) + "\\HCom_Icons\\"
+ICONPATH = os.path.dirname(__file__) + "\\HCom_Icons\\"
 HISTORY_PATH = os.path.dirname(__file__) + "\\HCom_History"
 RECEIVED_FILES_PATH = os.path.dirname(__file__) + "\\HCom_Received_Files"
 

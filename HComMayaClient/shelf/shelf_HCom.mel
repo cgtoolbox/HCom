@@ -26,7 +26,7 @@ global proc shelf_HCom () {
         -style "iconOnly" 
         -marginWidth 1
         -marginHeight 1
-        -command "from maya import OpenMayaUI as omui \nfrom shiboken import wrapInstance \nfrom PySide import QtGui\nfrom HCom.MayaClient import HComMayaUi\nreload(HComMayaUi)\n\nmayaMainWindowPtr = omui.MQtUtil.mainWindow() \nmayaMainWindow= wrapInstance(long(mayaMainWindowPtr), QtGui.QMainWindow)\n\nui = HComMayaUi.main()\nui.show(dockable=True)\n" 
+        -command "from maya import OpenMayaUI as omui \nfrom shiboken import wrapInstance \nfrom PySide import QtGui\nfrom HComMayaClient import HComMayaUi\nreload(HComMayaUi)\n\nmayaMainWindowPtr = omui.MQtUtil.mainWindow() \nmayaMainWindow= wrapInstance(long(mayaMainWindowPtr), QtGui.QMainWindow)\n\nui = HComMayaUi.main()\nui.show(dockable=True)\n" 
         -sourceType "python" 
         -commandRepeatable 1
         -flat 1

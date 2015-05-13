@@ -9,6 +9,8 @@ How it works:
 - On each user machine you can connect an hCom client ( from Maya or/and Houdini )  to the server.
 - you can send data to any user connected to hCom, for houdini digital assets, only maya with Houdini Engine installed can receive them.
 
-Demo on vimeo => https://vimeo.com/127091487 ( Houdini to Houdini ) https://vimeo.com/127655675 ( Houdini to Maya )
+Demo on vimeo:
+https://vimeo.com/127091487 ( Houdini to Houdini )
+https://vimeo.com/127655675 ( Houdini to Maya )
 
 

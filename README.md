@@ -11,6 +11,8 @@ How it works:
 
 Demo on vimeo:
 
+Help : http://guillaumejobst.blogspot.fr/p/hcom.html
+
 https://vimeo.com/127091487 ( Houdini to Houdini )
 
 https://vimeo.com/127655675 ( Houdini to Maya )

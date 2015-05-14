@@ -7,8 +7,8 @@ global proc shelf_HCom () {
     shelfButton
         -enableCommandRepeat 1
         -enable 1
-        -width 45
-        -height 45
+        -width 35
+        -height 35
         -manage 1
         -visible 1
         -preventOverride 0
@@ -21,8 +21,8 @@ global proc shelf_HCom () {
         -imageOverlayLabel "HCom" 
         -overlayLabelColor 0.8 0.8 0.8 
         -overlayLabelBackColor 0 0 0 0.2 
-        -image "D:/WORK_DEV/_Github/HCom/HCom_Icons/hcom.png" 
-        -image1 "D:/WORK_DEV/_Github/HCom/HCom_Icons/hcom.png" 
+        -image "hcom_shelf.png" 
+        -image1 "hcom_shelf.png" 
         -style "iconOnly" 
         -marginWidth 1
         -marginHeight 1

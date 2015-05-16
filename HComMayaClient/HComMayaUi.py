@@ -292,9 +292,9 @@ class HComMayaMainView(MayaQWidgetDockableMixin, QtGui.QWidget):
                     tab.outMessage.append("Error: User '{0}' not found.\n".format(i))
                 
         now = datetime.datetime.now()
-        timeStamp = "{1}:{2} {0}:".format(self.ID, str(now.hour).zfill(2), str(now.minute).zfill(2))
+        timeStamp = str(self.ID) + ":" + str(now.hour).zfill(2) + ":" + str(now.minute).zfill(2) + ":"
         
-        tab.appendMessage(self.ID, "{0}\n".format(str(tab.messageLine.toPlainText().encode('latin-1'))), fromMyself=True)
+        tab.appendMessage(self.ID, str(tab.messageLine.toPlainText().encode('latin-1')) + "\n", fromMyself=True)
         
         if settings["SAVE_HISTORY"]:
             for t in targets:
@@ -311,6 +311,16 @@ class HComMayaMainView(MayaQWidgetDockableMixin, QtGui.QWidget):
         msg = str(now.hour).zfill(2)  + ":" + str(now.minute).zfill(2) + " Sending Node ..."
 
         tab.appendDataSendBox(msg, targets, self.ID, tabTarget, HComClient.sendOtl)
+        
+    def _sendAlembic(self, targets, tabTarget, tab):
+        
+        if tab.tabTargetID == "OPEN_CHAT_ROOM":
+            tab = self.openChatRoom
+            
+        now = datetime.datetime.now()
+        msg = str(now.hour).zfill(2)  + ":" + str(now.minute).zfill(2) + " Sending Alembic cache ..."
+
+        tab.appendDataSendBox(msg, targets, self.ID, tabTarget, HComClient.sendAlembic)
         
     def _sendSettings(self, targets, tabTarget, tab):
         
@@ -538,9 +548,13 @@ def receiveData(sender, data, dataType, tabTarget, senderType=[None, None]):
     elif dataType == "pic":
         sendAddTabToThread(tabTarget, senderType)
         MayaGlobals.MAIN_UI.updateUiThread.inputData = {"SENDER":sender, "DATA_TYPE":dataType, "DATA":data, "TAB_TARGET":tabTarget, "SENDER_TYPE":senderType}
+        
+    # Alembic
+    elif dataType == "alembic":
+        sendAddTabToThread(tabTarget, senderType)
+        MayaGlobals.MAIN_UI.updateUiThread.inputData = {"SENDER":sender, "DATA_TYPE":dataType, "DATA":data, "TAB_TARGET":tabTarget, "SENDER_TYPE":senderType}
     
     # Data received
-    
     elif dataType == "dataReceivedUpdate":
         
         now = datetime.datetime.now()

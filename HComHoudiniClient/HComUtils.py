@@ -1,5 +1,6 @@
 import os
 import time
+import hou
 import subprocess
 import random
 import threading
@@ -52,8 +53,6 @@ def getAllLib(node):
         Fetch all library path of sub otls and selected otl.
         returns a dict {lib_file:binary_data}
     '''
-    
-    import hou
     
     libFound = False
     libData = []
@@ -142,9 +141,26 @@ def incrementFile(filePath):
     
     return fileInc
 
-def createOtl(data, sender="", settings=None):
+def createAlembic(data, sender="", settings=None):
     
-    import hou
+    hou.setUpdateMode(hou.updateMode.Manual)
+    
+    fileName = data["NAME"]
+    filePath = RECEIVED_FILES + fileName
+    
+    with open(filePath, 'wb') as f:
+        f.write(data["DATA"])
+    
+    geo = hou.node("/obj").createNode("geo", run_init_scripts=False)
+    geo.setName("Alembic_container_from_" + sender, unique_name=True)
+    geo.appendComment("Alembic_container_from_" + sender)
+    
+    alembicNode = geo.createNode("alembic")
+    alembicNode.parm("fileName").set(filePath)
+    
+    return True
+
+def createOtl(data, sender="", settings=None):
     
     nodeName = data["OTL_NAME"]
     parentType = data["OTL_PARENT_TYPE"]
@@ -309,8 +325,6 @@ def createOtl(data, sender="", settings=None):
         
 def setOtlSettings(data, sender="", settings=None):
     
-    import hou
-    
     nodeType = data["OTL_TYPE"]
     
     selNode = hou.ui.selectNode()
@@ -333,8 +347,6 @@ def setOtlSettings(data, sender="", settings=None):
             print("Parm '{0}' not found, skipped.".format(p))
 
 def createMesh(data, sender="", settings=None):
-    
-    import hou
     
     meshType = data["MESH_TYPE"]    
     meshName = data["MESH_NAME"]

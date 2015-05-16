@@ -179,7 +179,7 @@ class HComMainView(QtGui.QFrame):
             Fetch data from client and add confirmation widget to the chat
         '''
         
-        sender = in_data["SENDER"]
+        _sender = in_data["SENDER"]
         dataType = in_data["DATA_TYPE"]
         data = in_data["DATA"]
         tabTarget = in_data["TAB_TARGET"]
@@ -199,7 +199,7 @@ class HComMainView(QtGui.QFrame):
                     s = QtGui.QSound(ICONPATH + "gnm.wav")
                     s.play()
             
-        self.USER_TABS[tabTarget].appendInputBox(sender, dataType, data)
+        self.USER_TABS[tabTarget].appendInputBox(_sender, dataType, data)
         
 
     def _updateUi(self, data):
@@ -330,7 +330,17 @@ class HComMainView(QtGui.QFrame):
         now = datetime.datetime.now()
         msg = str(now.hour).zfill(2)  + ":" + str(now.minute).zfill(2) + " Sending obj file ..."
 
-        tab.appendDataSendBox(msg, targets, self.ID, tabTarget, HComClient.sendObjMesh)       
+        tab.appendDataSendBox(msg, targets, self.ID, tabTarget, HComClient.sendObjMesh)
+        
+    def _sendAlembic(self, targets, tabTarget, tab):
+        
+        if tab.tabTargetID == "OPEN_CHAT_ROOM":
+            tab = self.openChatRoom
+            
+        now = datetime.datetime.now()
+        msg = str(now.hour).zfill(2)  + ":" + str(now.minute).zfill(2) + " Sending Alembic cache ..."
+
+        tab.appendDataSendBox(msg, targets, self.ID, tabTarget, HComClient.sendAlembic)
         
     def _sendPic(self, targets, tabTarget, tab):
         
@@ -526,9 +536,14 @@ def receiveData(sender, data, dataType, tabTarget, senderType=[None, None]):
     elif dataType == "pic":
         sendAddTabToThread(tabTarget, senderType)
         HComMainUi.updateUiThread.inputData = {"SENDER":sender, "DATA_TYPE":dataType, "DATA":data, "TAB_TARGET":tabTarget, "SENDER_TYPE":senderType}
+
+    # Alembic
+    elif dataType == "alembic":
+        sendAddTabToThread(tabTarget, senderType)
+        HComMainUi.updateUiThread.inputData = {"SENDER":sender, "DATA_TYPE":dataType, "DATA":data, "TAB_TARGET":tabTarget, "SENDER_TYPE":senderType}
     
+
     # Data received
-    
     elif dataType == "dataReceivedUpdate":
         
         now = datetime.datetime.now()

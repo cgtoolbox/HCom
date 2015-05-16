@@ -1,6 +1,7 @@
 import os
 import datetime
 import time
+import webbrowser
 
 import PySide.QtGui as QtGui
 import PySide.QtCore as QtCore
@@ -8,7 +9,7 @@ import PySide.QtCore as QtCore
 import HComUtils
 import HComClient
 
-HCOM_VERSION = "0.5.0"
+HCOM_VERSION = "0.7.0"
 
 ICONPATH = os.path.dirname(__file__) + "\\HCom_Icons\\"
 HISTORY_PATH = os.path.dirname(__file__) + "\\HCom_History"
@@ -238,6 +239,16 @@ class UserChatTabWidget(QtGui.QWidget):
         self.actionButtonLayout.addWidget(self.sendObjBtn)
         self.widgetList.append(self.sendObjBtn)
         
+        self.sendAlembicBtn = QtGui.QPushButton("")
+        self.sendAlembicBtn.setToolTip("Send alembic cache")
+        self.sendAlembicBtn.setIconSize(QtCore.QSize(32,32))
+        self.sendAlembicBtn.setFixedSize(40,40)
+        self.sendAlembicBtn.setIcon(QtGui.QIcon(ICONPATH + "alembic.png"))
+        self.sendAlembicBtn.setDisabled(not self.connected)
+        self.sendAlembicBtn.clicked.connect(lambda: self.mainUI._sendAlembic(self.target, self.tabTargetID, self))
+        self.actionButtonLayout.addWidget(self.sendAlembicBtn)
+        self.widgetList.append(self.sendAlembicBtn)
+        
         self.sendPictureBtn = QtGui.QPushButton("")
         self.sendPictureBtn.setToolTip("Send picture file")
         self.sendPictureBtn.setIconSize(QtCore.QSize(32,32))
@@ -284,28 +295,31 @@ class UserChatTabWidget(QtGui.QWidget):
         
         self.messageScrollArea.ensureWidgetVisible(self.messageOutLayout.widget())
         
-    def appendInputBox(self, sender, dataType, data):
+    def appendInputBox(self, _sender, dataType, data):
         
         now = datetime.datetime.now()
-        timeStamp = "{1}:{2} {0}:".format(sender, str(now.hour).zfill(2), str(now.minute).zfill(2))
         
-        message = "{0} wants to send you ".format(sender)
+        timeStamp = str(_sender) + ":" + str(now.hour).zfill(2) + ":" + str(now.minute).zfill(2) + ":"
+        message = str(_sender) + " wants to send you "
         
         if dataType == "otl":
-            message += "a node.\n  => type: {0}, Name: {1}".format(data["OTL_TYPE"], data["OTL_NAME"])
+            message += "a node.\n  => type: " + str(data["OTL_TYPE"]) + ", Name: " + str(data["OTL_NAME"])
             
         elif dataType == "mesh":
-            message += "a mesh.\n  => type: {0}".format(data["MESH_TYPE"])
+            message += "a mesh.\n  => type: " + str(data["MESH_TYPE"])
             
         elif dataType == "settings":
-            message += "a node settings.\n  => type: {0}".format(data["OTL_TYPE"])
+            message += "a node settings.\n  => type: " + str(data["OTL_TYPE"])
             
         elif dataType == "pic":
-            message += "an image file.\n  => name: {0}".format(data["IMAGE_NAME"])
+            message += "an image file.\n  => name: "+ str(data["IMAGE_NAME"])
+        
+        elif dataType == "alembic":
+            message += "an alembic cache file.\n  => name: " + str(data["NAME"])
         
         data = [dataType, data]
         
-        msbBox = MessageBox(timeStamp, message, data=data, isInputData=True, mainUi=self.mainUI, sender=sender)
+        msbBox = MessageBox(timeStamp, message, data=data, isInputData=True, mainUi=self.mainUI, _sender=_sender)
         self.messageOutLayout.addWidget(msbBox)
         
     def appendDataSendBox(self, msg, targets, _sender, tabTarget, workFunc, imagePath=None):
@@ -498,12 +512,19 @@ class HelpWindow(QtGui.QDialog):
         
         self.versionString = QtGui.QLabel("HCom Version {0}".format(HCOM_VERSION))
         mainLayout.addWidget(self.versionString)
+        
+        self.onlineHelpBtn = QtGui.QPushButton("Online Help")
+        self.onlineHelpBtn.clicked.connect(self.openOnlineHelp)
+        mainLayout.addWidget(self.onlineHelpBtn)
 
         self.closeButton = QtGui.QPushButton("Close")
         self.closeButton.clicked.connect(self.close)
         mainLayout.addWidget(self.closeButton)
         
         self.setLayout(mainLayout)
+        
+    def openOnlineHelp(self):
+        webbrowser.open('http://guillaumejobst.blogspot.fr/p/hcom.html')
 
 class SettingsWindow(QtGui.QDialog):
     '''
@@ -627,7 +648,7 @@ class MessageBox(QtGui.QWidget):
     '''
         Widget added to the current tab when a user is receiving data from another client
     '''
-    def __init__(self, header, message, fromMyself=False, mainUi=None, data=False, isInputData=False, sender=""):
+    def __init__(self, header, message, fromMyself=False, mainUi=None, data=False, isInputData=False, _sender=""):
         QtGui.QWidget.__init__(self)
         
         if data:
@@ -637,7 +658,7 @@ class MessageBox(QtGui.QWidget):
             self.dataType = ""
             self.dataDict = {}
             
-        self._sender = sender
+        self._sender = _sender
         self.mainUi = mainUi
         
         self.workThread = RecieveDataThread()
@@ -729,27 +750,23 @@ class MessageBox(QtGui.QWidget):
             self.workThread.workFonc = HComUtils.createPic
             self.workThread.start()
             
+        # Alembic
+        elif self.dataType == "alembic":
+            
+            self.workThread.workFonc = HComUtils.createAlembic
+            self.workThread.start()
+            
         self.acceptBtn.setDisabled(True)
         self.cancelBtn.setDisabled(True)
             
         
-    def endJob(self, cmd=None):
+    def endJob(self, result=None):
         
-        if cmd:
-            if cmd["CMD_TYPE"] == "mel":
-                melcmd = cmd["DATA"]
-                try:
-                    import maya.mel as mel
-                    mel.eval(melcmd)
-                except Exception as e:
-                    print("ERROR MEL COMMAND: " + str(e))
-                    
-            elif cmd["CMD_TYPE"] == "python":
-                if cmd["CMD"] == "import_obj":
-                    import maya.cmds as cmds
-                    cmds.file(cmd["DATA"],i=True,dns=True)
+        if result:
+            self.activityBar.setStyleSheet('''QProgressBar::chunk{background:green;}''')
+        else:
+            self.activityBar.setStyleSheet('''QProgressBar::chunk{background:red;}''')
                 
-        
         HComClient.sendDataReceivedInfo(self.sender, self.mainUi.ID, [True, self.dataType], self.mainUi.ID)
         self.activityBar.setMaximum(1)
         self.activityBar.setValue(1)
@@ -778,3 +795,59 @@ class InputMessageBox(QtGui.QTextEdit):
         
         else:
             super(self.__class__, self).keyPressEvent(event)
+            
+class FrameRangeSelection(QtGui.QDialog):
+    
+    def __init__(self, start=0, end=100, parent=None):
+        QtGui.QDialog.__init__(self, parent=parent)
+        
+        self.frameRange = [start, end]
+        self.VALID = False
+    
+        mainLayout = QtGui.QVBoxLayout()
+        mainLayout.setSpacing(10)
+        
+        mainLayout.addWidget(QtGui.QLabel("Enter a frame range:"))
+        
+        frameLayout = QtGui.QHBoxLayout()
+        frameLayout.setSpacing(10)
+        
+        frameLayout.addWidget(QtGui.QLabel("Start Frame:"))
+        self.startValue = QtGui.QDoubleSpinBox()
+        self.startValue.setMinimum(-999999.9)
+        self.startValue.setMaximum(999999.9)
+        self.startValue.setValue(start)
+        frameLayout.addWidget(self.startValue)
+        
+        frameLayout.addWidget(QtGui.QLabel("End Frame:"))
+        self.endValue = QtGui.QDoubleSpinBox()
+        self.endValue.setMinimum(-999999.9)
+        self.endValue.setMaximum(999999.9)
+        self.endValue.setValue(end)
+        frameLayout.addWidget(self.endValue)
+        
+        mainLayout.addItem(frameLayout)
+        
+        buttonsLayout = QtGui.QHBoxLayout()
+        buttonsLayout.setSpacing(5)
+        
+        acceptBtn = QtGui.QPushButton("Accept")
+        acceptBtn.clicked.connect(self.validFrameRange)
+        buttonsLayout.addWidget(acceptBtn)
+        
+        closeBtn = QtGui.QPushButton("Cancel")
+        closeBtn.clicked.connect(self.close)
+        buttonsLayout.addWidget(closeBtn)
+        
+        mainLayout.addItem(buttonsLayout)
+        
+        self.setLayout(mainLayout)
+        
+    def validFrameRange(self):
+        
+        start = self.startValue.value()
+        end = self.endValue.value()
+        self.frameRange = [start, end]
+        self.VALID= True
+        self.close()
+        

@@ -4,6 +4,10 @@ import subprocess
 import random
 import threading
 
+import maya.mel as mel
+import maya.cmds as cmds
+import maya.utils as mUtils
+
 HISTORY_FOLDER = os.path.dirname(__file__) + "\\HCom_History\\"
 ICONPATH = os.path.dirname(__file__) + "\\HCom_Icons\\"
 RECEIVED_FILES_PATH = os.path.dirname(__file__) + "\\HCom_Received_Files\\"
@@ -102,14 +106,26 @@ def incrementFile(filePath):
     
     return fileInc
 
-def createOtl(data, sender="", settings=None):
+def createAlembic(data, sender = "", settings=None):
     
-    import maya.mel as mel
+    name = data["NAME"]
+    binary = data["DATA"]
+
+    with open(RECEIVED_FILES_PATH + name, 'wb') as f:
+        f.write(binary)
+        
+    try:
+        mUtils.executeInMainThreadWithResult(lambda: cmds.AbcImport(RECEIVED_FILES_PATH + name))
+        return True
+    except AttributeError:
+        print("ERROR: ALEMBIC PLUGIN NOT LOADED")
+        return False
+        
+def createOtl(data, sender="", settings=None):
+        
     
     nodeType = data["OTL_TYPE"]
     subOtlLibs = data["OTL_ALL_LIBS"]
-    
-    print("NODE TYPE: " + str(nodeType))
     
     libPath = None
     otlToAdd = None
@@ -136,7 +152,13 @@ def createOtl(data, sender="", settings=None):
     if libPath and otlToAdd:
         melcmd = 'houdiniAsset -loadAsset "' + libPath + '" "' + otlToAdd + '"'
         
-        return {"CMD_TYPE":"mel", "CMD":"import_otl", "DATA":melcmd}
+        try:
+            mUtils.executeInMainThreadWithResult(lambda: mel.eval(melcmd))
+            return True
+        except Exception as e:
+            print str(e)
+            return False
+
     else:
         print("ERROR: Incoming object is not a valid digital asset")
         return None
@@ -146,8 +168,6 @@ def setOtlSettings(data, sender="", settings=None):
     return False
 
 def createMesh(data, sender="", settings=None):
-    
-    import maya.cmds as cmds
     
     meshType = data["MESH_TYPE"]    
     if meshType != ".obj":
@@ -162,7 +182,13 @@ def createMesh(data, sender="", settings=None):
     with open(obj, 'wb') as f:
         f.write(meshData)
     
-    return {"CMD_TYPE":"python","CMD":"import_obj", "DATA":obj}
+    try:
+        mUtils.executeInMainThreadWithResult(lambda: cmds.file(obj,i=True,dns=True))
+        return True
+    except Exception as e:
+        print str(e)
+        return False
+    
     
     
 def createPic(data, sender="", settings=None):

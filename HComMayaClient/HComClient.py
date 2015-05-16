@@ -5,6 +5,7 @@ import os
 
 import maya.cmds as cmds
 import maya.utils as mUtils
+from HComMayaClient import HComWidgets
 
 RECEIVED_FILES = os.path.dirname(__file__)  + "\\HCom_Received_Files\\"
 
@@ -50,11 +51,11 @@ class HCom_ClientService(rpyc.Service):
     
     def exposed_catchData(self, dataType, sender, data, tabTarget, clientType):
         
-            HComMayaUi.receiveData(sender, data, dataType, tabTarget, clientType)
+        HComMayaUi.receiveData(sender, data, dataType, tabTarget, clientType)
         
     def exposed_sendIDUpdate(self, ID, action, clientType):
 
-            HComMayaUi.receiveIDUpdate(ID, action, clientType)
+        HComMayaUi.receiveIDUpdate(ID, action, clientType)
 
 
 def connectToServer(ID=None, clientType="NONE"):
@@ -120,6 +121,33 @@ def sendMessage(target_clientID, sender, message, tabTarget):
     result = _sendData(target_clientID, sender, message, "msg", tabTarget)
     return result
 
+def sendAlembic(target_clientID, sender, tabTarget):
+    
+    result = mUtils.executeInMainThreadWithResult(_exportAlembic)
+    if not result:
+        return False
+    
+    fileName = result[0]
+    filePath = result[1]
+    frameRange = result[2]
+    
+    with open(filePath, 'rb') as f:
+        data = f.read()
+        
+    outData = {}
+    outData["TYPE"] = "alembic_cache"
+    outData["NAME"] = fileName
+    outData["FRAME_RANGE"] = frameRange
+    outData["DATA"] = data
+    
+    try:   
+        os.remove(filePath)
+    except:
+        pass
+    
+    result = _sendData(target_clientID, sender, outData, "alembic", tabTarget)
+    
+    return result
 
 def sendSettings(target_clientID, sender, tabTarget):
     return
@@ -158,6 +186,46 @@ def sendObjMesh(target_clientID, sender, tabTarget):
     
     return result
 
+def _exportAlembic():
+    
+    if not "AbcExport" in cmds.pluginInfo( query=True, listPlugins=True ):
+        ask = QtGui.QMessageBox()
+        ask.setText("Error: Alembic export plugin not loaded (AbcExport) !")
+        ask.setIcon(QtGui.QMessageBox.Warning)
+        ask.exec_()
+        return False
+    
+    selection = cmds.ls(sl=True)
+    if not selection:
+        ask = QtGui.QMessageBox()
+        ask.setText("Error: Nothing selected !")
+        ask.setIcon(QtGui.QMessageBox.Warning)
+        ask.exec_()
+        return False
+    
+    name = str(selection[0]) + ".abc"
+    abcFile = RECEIVED_FILES + name
+    abcFile = HComUtils.incrementFile(abcFile)
+    start = cmds.playbackOptions(query=True, minTime=True)
+    end = cmds.playbackOptions(query=True, maxTime=True)
+    
+    frameRangeUi = HComWidgets.FrameRangeSelection(start=start, end=end)
+    frameRangeUi.exec_()
+    
+    if not frameRangeUi.VALID:
+        return False
+    
+    else:
+        frames = frameRangeUi.frameRange
+        print frames
+    
+    cmd = "-fr {0} {1} -f {2}".format(frames[0], frames[1], abcFile)
+    cmds.AbcExport(sl=True, j=cmd)
+    
+    if os.path.exists(abcFile):
+        return name, abcFile, frames
+    
+    return False
 
 def _exportObj():
     

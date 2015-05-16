@@ -6,6 +6,9 @@ import getpass
 import os
 
 import threading
+import HComWidgets
+
+RECEIVED_FILES = os.path.dirname(__file__)  + "\\HCom_Received_Files\\"
 
 pysidePath = os.environ["PYTHONHOME"] + r"lib\site-packages-forced"
 if not pysidePath in sys.path:
@@ -107,7 +110,7 @@ def _sendData(target_clientID, sender, data, datatype, tabTarget):
         print("ERROR: client " + target_clientID + " not found.")
 
 @threaded_sendata  
-def sendMessage(target_clientID, sender, message, tabTarget, ):
+def sendMessage(target_clientID, sender, message, tabTarget):
     
     result = _sendData(target_clientID, sender, message, "msg", tabTarget)
     return result
@@ -203,6 +206,99 @@ def sendOtl(target_clientID, sender, tabTarget, tabClientType=None):
     otlData["OTL_ALL_LIBS"] = HComUtils.getAllLib(sel)
     
     result = _sendData(target_clientID, sender, otlData, "otl", tabTarget)
+    if result:
+        return True
+    else:
+        return False
+    
+def sendAlembic(target_clientID, sender, tabTarget, tabClientType=None):
+    
+    selection = hou.selectedNodes()
+    if not selection:
+        hou.ui.displayMessage("Nothing is selected")
+        return False
+    
+    selection = selection[0]
+    if not selection.__class__ == hou.ObjNode:
+        hou.ui.displayMessage("Selection must be a geo node")
+        return False
+    
+    start = 1
+    end = 100
+    cancelled = False
+    inputValid = False
+    while not inputValid:
+    
+        pickFrameUI = hou.ui.readMultiInput("Enter a frame range:",
+                                            ["Start Frame", "End Frame"],
+                                            buttons = ["Ok", "Cancel"],
+                                            initial_contents=(hou.expandString("$FSTART"), hou.expandString("$FEND")),
+                                            title="Pick Frame Range",
+                                            help="Must be two integers")
+        if pickFrameUI[0] == 1:
+            cancelled = True
+            inputValid = True
+        else:
+            start = pickFrameUI[1][0]
+            end = pickFrameUI[1][1]
+            
+            if not start.isdigit() or not end.isdigit():
+                inputValid = False
+                
+            else:
+                if int(start) > int(end):
+                    inputValid = False
+                else:
+                    start = int(start)
+                    end = int(end)
+                    inputValid = True
+                    
+    if cancelled:
+        return False
+    
+    name = selection.name()
+    frames = [start, end]
+    
+    nodePath = selection.path()
+    tmpGeo = hou.node("/obj").createNode("geo", run_init_scripts=False)
+    tmpGeo.setName('alembic_tmp_exporter', unique_name=True)
+    
+    objectMerge = tmpGeo.createNode("object_merge")
+    objectMerge.parm("objpath1").set(nodePath)
+    
+    alembicExport = tmpGeo.createNode("rop_alembic")
+    alembicExport.parm("trange").set(1)
+    alembicExport.parm("f1").deleteAllKeyframes()
+    alembicExport.parm("f1").set(int(frames[0]))
+    alembicExport.parm("f2").deleteAllKeyframes()
+    alembicExport.parm("f2").set(int(frames[1]))
+    
+    alembicExport.parm("save_attributes").set(0)
+    
+    alembicExport.setInput(0, objectMerge)
+    
+    outFile = RECEIVED_FILES + name + "_tmpCacheAlembic.abc"
+    
+    alembicExport.parm("filename").set(outFile)
+    alembicExport.render()
+    
+    tmpGeo.destroy()
+    
+    with open(outFile, 'rb') as f:
+        data = f.read()
+    
+    # Clean tmp file
+    try:
+        os.remove(outFile)
+    except:
+        pass
+    
+    outDic = {}
+    outDic["NAME"] = name
+    outDic["FRAME_RANGE"] = frames
+    outDic["DATA"]= data
+    
+    result = _sendData(target_clientID, sender, outDic, "alembic", tabTarget)
     if result:
         return True
     else:

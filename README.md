@@ -1,5 +1,5 @@
 # HCom
-HCom is a client / server communication system which allows the user to send data between software like Houdini and Maya through local network. It allows to send meshes, bitmaps, and houdini digital assets ( more to come soon ... ).
+HCom is a client / server communication system which allows the user to send data between software like Houdini and Maya through local network. It allows to send meshes, bitmaps, alembic cache data and houdini digital assets ( more to come soon ... ).
 
 It is based on Python 2.7 and the rpyc library, the UI is written with PySide ( shipped with Houdini and Maya ).
 
@@ -16,5 +16,7 @@ Help : http://guillaumejobst.blogspot.fr/p/hcom.html
 https://vimeo.com/127091487 ( Houdini to Houdini )
 
 https://vimeo.com/127655675 ( Houdini to Maya )
+
+https://vimeo.com/128033450 ( Alembic support )
 
 

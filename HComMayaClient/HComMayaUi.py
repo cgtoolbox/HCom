@@ -74,9 +74,11 @@ class HComMayaMainView(MayaQWidgetDockableMixin, QtGui.QWidget):
         v = cmds.about(version=True)
         hengineInfo = ""
         mayaType = HComUtils.CLIENT_TYPE.MAYA_NO_HENGINE
-        if "houdiniEngine" in cmds.pluginInfo( query=True, listPlugins=True ):
-            hengineInfo = " (Houdini Engine Loaded)"
-            mayaType = HComUtils.CLIENT_TYPE.MAYA_HENGINE
+        plugins = cmds.pluginInfo( query=True, listPlugins=True )
+        if plugins:
+            if "houdiniEngine" in cmds.pluginInfo( query=True, listPlugins=True ):
+                hengineInfo = " (Houdini Engine Loaded)"
+                mayaType = HComUtils.CLIENT_TYPE.MAYA_HENGINE
             
         return [mayaType, "Maya " + str(v) + hengineInfo]
 

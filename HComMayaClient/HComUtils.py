@@ -189,7 +189,6 @@ def createMesh(data, sender="", settings=None):
         return False
     
     
-    
 def createPic(data, sender="", settings=None):
     
     imageName = data["IMAGE_NAME"]   
@@ -203,19 +202,24 @@ def createPic(data, sender="", settings=None):
     with open(outFile, 'wb') as f:
         f.write(imageData)
     
-    t = threading.Thread(target = openPicFile, args=(outFile,))
-    t.start()
+    openPicFile(outFile)
+    return True
             
 def openPicFile(picFile):
     
     try:
-        subprocess.Popen(["mplay.exe", picFile])
+        subprocess.Popen("fcheck " + picFile, shell=True)
+    
     except Exception as e:
-        print "MPLAY ERROR: " + str(e)
+        
+        print "FCHECK ERROR: " + str(e)
+        
         try:
-            subprocess.Popen(["explorer", picFile])
+            subprocess.Popen("explorer " + picFile, shell=True)
+        
         except Exception as e:
             print "EXPLORER ERROR: " + str(e)
+        
     
 def fetchMyReceivedFilesFolder():
     

@@ -10,7 +10,6 @@ import maya.utils as mUtils
 
 HISTORY_FOLDER = os.path.dirname(__file__) + "\\HCom_History\\"
 ICONPATH = os.path.dirname(__file__) + "\\HCom_Icons\\"
-RECEIVED_FILES_PATH = os.path.dirname(__file__) + "\\HCom_Received_Files\\"
 
 def readIni():
     
@@ -111,11 +110,11 @@ def createAlembic(data, sender = "", settings=None):
     name = data["NAME"]
     binary = data["DATA"]
 
-    with open(RECEIVED_FILES_PATH + name, 'wb') as f:
+    with open(fetchMyReceivedFilesFolder() + os.sep + name + ".abc", 'wb') as f:
         f.write(binary)
         
     try:
-        mUtils.executeInMainThreadWithResult(lambda: cmds.AbcImport(RECEIVED_FILES_PATH + name))
+        mUtils.executeInMainThreadWithResult(lambda: cmds.AbcImport(fetchMyReceivedFilesFolder() + os.sep + name + ".abc"))
         return True
     except AttributeError:
         print("ERROR: ALEMBIC PLUGIN NOT LOADED")
@@ -137,7 +136,7 @@ def createOtl(data, sender="", settings=None):
             libName = e[0]
             libData = e[1]
             
-            otlLibToInstall = RECEIVED_FILES_PATH.replace("\\","/") + libName
+            otlLibToInstall = str(fetchMyReceivedFilesFolder() + os.sep).replace("\\","/") + libName
             
             with open(otlLibToInstall, 'wb') as f:
                 f.write(libData)
@@ -177,7 +176,7 @@ def createMesh(data, sender="", settings=None):
     meshName = data["MESH_NAME"]
     meshData = data["MESH_DATA"]
     
-    obj = RECEIVED_FILES_PATH + meshName + meshType
+    obj = fetchMyReceivedFilesFolder() + os.sep + meshName + meshType
     obj = incrementFile(obj)
     with open(obj, 'wb') as f:
         f.write(meshData)
@@ -198,7 +197,7 @@ def createPic(data, sender="", settings=None):
     
     imageNameAndFile = imageName.split(".")
             
-    outFile = RECEIVED_FILES_PATH + imageNameAndFile[0] + "." + imageNameAndFile[1]
+    outFile = fetchMyReceivedFilesFolder() + os.sep + imageNameAndFile[0] + "." + imageNameAndFile[1]
     outFile = incrementFile(outFile)
     
     with open(outFile, 'wb') as f:
@@ -218,7 +217,17 @@ def openPicFile(picFile):
         except Exception as e:
             print "EXPLORER ERROR: " + str(e)
     
+def fetchMyReceivedFilesFolder():
     
+    p = readIni()["MY_RECEIVED_FILES"].replace("\r", "")
+    if p == "DEFAULT":
+        p = os.path.dirname(__file__) + "\\HCom_Received_Files"
+        
+    if not os.path.exists(p):
+        os.makedirs(p)
+    
+    return p
+
 def rdnname():
     names = ["Motoko", "Bato", "Kusanagi", "Frodon", "Sheldon", "Pipo", "Sam", "Gandalf", "Fitz", "Henry"]
     names += ["Leonard", "Batman", "Bobleponge", "rincewind", "carrot", "HelloWorld", "Python", "Houdini"]

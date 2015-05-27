@@ -7,15 +7,9 @@ import maya.cmds as cmds
 import maya.utils as mUtils
 from HComMayaClient import HComWidgets
 
-RECEIVED_FILES = os.path.dirname(__file__)  + "\\HCom_Received_Files\\"
-
 from PySide import QtGui
 
 import threading
-
-pysidePath = os.environ["PYTHONHOME"] + r"lib\site-packages-forced"
-if not pysidePath in sys.path:
-    sys.path.append(pysidePath)
 
 from _globals import MayaGlobals
 
@@ -204,7 +198,7 @@ def _exportAlembic():
         return False
     
     name = str(selection[0]) + ".abc"
-    abcFile = RECEIVED_FILES + name
+    abcFile = HComUtils.fetchMyReceivedFilesFolder() + os.sep + name
     abcFile = HComUtils.incrementFile(abcFile)
     start = cmds.playbackOptions(query=True, minTime=True)
     end = cmds.playbackOptions(query=True, maxTime=True)
@@ -239,7 +233,7 @@ def _exportObj():
     
     meshName = str(selection[0])
     
-    objtmp = RECEIVED_FILES + meshName + "_tmp.obj"
+    objtmp = HComUtils.fetchMyReceivedFilesFolder() + os.sep + meshName + "_tmp.obj"
     objtmp = HComUtils.incrementFile(objtmp)
     
     try:

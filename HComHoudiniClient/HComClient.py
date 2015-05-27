@@ -6,9 +6,6 @@ import getpass
 import os
 
 import threading
-import HComWidgets
-
-RECEIVED_FILES = os.path.dirname(__file__)  + "\\HCom_Received_Files\\"
 
 pysidePath = os.environ["PYTHONHOME"] + r"lib\site-packages-forced"
 if not pysidePath in sys.path:
@@ -277,7 +274,7 @@ def sendAlembic(target_clientID, sender, tabTarget, tabClientType=None):
     
     alembicExport.setInput(0, objectMerge)
     
-    outFile = RECEIVED_FILES + name + "_tmpCacheAlembic.abc"
+    outFile = HComUtils.fetchMyReceivedFilesFolder() + os.sep + name + "_tmpCacheAlembic.abc"
     
     alembicExport.parm("filename").set(outFile)
     alembicExport.render()

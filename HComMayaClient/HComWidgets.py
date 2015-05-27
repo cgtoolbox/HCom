@@ -13,7 +13,6 @@ HCOM_VERSION = "0.7.0"
 
 ICONPATH = os.path.dirname(__file__) + "\\HCom_Icons\\"
 HISTORY_PATH = os.path.dirname(__file__) + "\\HCom_History"
-RECEIVED_FILES_PATH = os.path.dirname(__file__) + "\\HCom_Received_Files"
 
 ###########################################
 # THREADS
@@ -416,6 +415,8 @@ class UserListDockWidget(QtGui.QWidget):
         helpWin.exec_()
     
     def _openReceivedFilesFolder(self):
+        
+        RECEIVED_FILES_PATH = HComUtils.fetchMyReceivedFilesFolder()
         if os.path.exists(RECEIVED_FILES_PATH):
             os.startfile(RECEIVED_FILES_PATH)
         else:
@@ -558,6 +559,21 @@ class SettingsWindow(QtGui.QDialog):
         self.serverPort = QtGui.QLineEdit(str(initValues["PORT"]))
         serverPortlayout.addWidget(self.serverPort)
         settingsLayout.addItem(serverPortlayout)
+        
+        myReceivedFilesLayout = QtGui.QHBoxLayout()
+        myReceivedFilesLayout.setSpacing(10)
+        self.myReceivedFilesLbl = QtGui.QLabel("My Received Files Folder:")
+        myReceivedFilesLayout.addWidget(self.myReceivedFilesLbl)
+        self.myReceivedFileLine = QtGui.QLineEdit("")
+        if initValues["MY_RECEIVED_FILES"] == "DEFAULT":
+            self.myReceivedFileLine.setText(str(os.path.dirname(__file__)) + "\\HCom_Received_Files")
+        else:
+            self.myReceivedFileLine.setText(str(initValues["MY_RECEIVED_FILES"]))
+        myReceivedFilesLayout.addWidget(self.myReceivedFileLine)
+        self.myReceivedFileBtn = QtGui.QPushButton("Pick")
+        self.myReceivedFileBtn.clicked.connect(self.pickMyReceivedFilesFolder)
+        myReceivedFilesLayout.addWidget(self.myReceivedFileBtn)
+        settingsLayout.addItem(myReceivedFilesLayout)
 
         self.saveHistory = QtGui.QCheckBox("Save Conversation history")
         self.saveHistory.setChecked(bool(initValues["SAVE_HISTORY"]))
@@ -566,6 +582,10 @@ class SettingsWindow(QtGui.QDialog):
         self.playSounds = QtGui.QCheckBox("Play Sounds")
         self.playSounds.setChecked(bool(initValues["PLAY_SOUND"]))
         settingsLayout.addWidget(self.playSounds)
+        
+        self.returnToDefaultBtn = QtGui.QPushButton("Revert to Default")
+        self.returnToDefaultBtn.clicked.connect(self.returnToDefault)
+        settingsLayout.addWidget(self.returnToDefaultBtn)
         
         buttonsLayout = QtGui.QHBoxLayout()
         buttonsLayout.setSpacing(10)
@@ -582,12 +602,35 @@ class SettingsWindow(QtGui.QDialog):
         
         settingsLayout.setAlignment(QtCore.Qt.AlignTop)
         self.setLayout(settingsLayout)
+        
+    def pickMyReceivedFilesFolder(self):
+        
+        f = QtGui.QFileDialog.getExistingDirectory(caption="Pick a folder")
+        if not f:
+            return
+        
+        if not os.path.exists(f):
+            return
+        
+        self.myReceivedFileLine.setText(str(f))
+        
+    def returnToDefault(self):
+        
+        self.serverAdress.setText("127.0.0.1")
+        self.serverPort.setText("5000")
+        self.switchToManualMode.setChecked(True)
+        self.playSounds.setChecked(False)
+        self.myReceivedFileLine.setText(os.path.dirname(__file__) + "\\HCom_Received_Files")
     
     def validSettings(self):
         
         self.SETTINGS["SERVER"] = str(self.serverAdress.text())
         self.SETTINGS["PORT"] = str(self.serverPort.text())
         self.SETTINGS["PLAY_SOUND"] = str(self.playSounds.isChecked())
+        if str(self.myReceivedFileLine.text()) == os.path.dirname(__file__) + "\\HCom_Received_Files":
+            self.SETTINGS["MY_RECEIVED_FILES"] = "DEFAULT"
+        else:
+            self.SETTINGS["MY_RECEIVED_FILES"] = str(self.myReceivedFileLine.text())
         
         HComUtils.writeIni(self.SETTINGS)
         self.close()

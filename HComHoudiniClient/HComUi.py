@@ -21,7 +21,6 @@ global HComMainUi
 HComMainUi = None
 
 ICONPATH = os.path.dirname(__file__) + "\\HCom_Icons\\"
-RECEIVED_FILES = os.path.dirname(__file__)  + "\\HCom_Received_Files\\"
 
 class HComMainView(QtGui.QFrame):
     

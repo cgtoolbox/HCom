@@ -7,7 +7,6 @@ import threading
 
 HISTORY_FOLDER = os.path.dirname(__file__) + "\\HCom_History\\"
 ICONPATH = os.path.dirname(__file__) + "\\HCom_Icons\\"
-RECEIVED_FILES = os.path.dirname(__file__)  + "\\HCom_Received_Files\\"
 
 def readIni():
     
@@ -146,7 +145,7 @@ def createAlembic(data, sender="", settings=None):
     hou.setUpdateMode(hou.updateMode.Manual)
     
     fileName = data["NAME"]
-    filePath = RECEIVED_FILES + fileName
+    filePath = fetchMyReceivedFilesFolder() + os.sep + fileName
     
     with open(filePath, 'wb') as f:
         f.write(data["DATA"])
@@ -182,7 +181,7 @@ def createOtl(data, sender="", settings=None):
             if libName in allLoadedFiles:
                 continue
             
-            otlLibToInstall = RECEIVED_FILES + libName
+            otlLibToInstall = fetchMyReceivedFilesFolder() + os.sep + libName
             
             with open(otlLibToInstall, 'wb') as f:
                 f.write(libData)
@@ -352,7 +351,7 @@ def createMesh(data, sender="", settings=None):
     meshName = data["MESH_NAME"]
     meshData = data["MESH_DATA"]
     
-    bgeoFile = RECEIVED_FILES + meshName + meshType
+    bgeoFile = fetchMyReceivedFilesFolder() + os.sep + meshName + meshType
     bgeoFile = incrementFile(bgeoFile)
     with open(bgeoFile, 'wb') as f:
         f.write(meshData)
@@ -373,7 +372,7 @@ def createPic(data, sender="", settings=None):
     
     imageNameAndFile = imageName.split(".")
             
-    outFile = RECEIVED_FILES + imageNameAndFile[0] + "." + imageNameAndFile[1]
+    outFile = fetchMyReceivedFilesFolder() + os.sep + imageNameAndFile[0] + "." + imageNameAndFile[1]
     outFile = incrementFile(outFile)
     
     with open(outFile, 'wb') as f:
@@ -393,6 +392,17 @@ def openPicFile(picFile):
         except Exception as e:
             print "EXPLORER ERROR: " + str(e)
     
+
+def fetchMyReceivedFilesFolder():
+    
+    p = readIni()["MY_RECEIVED_FILES"]
+    if p == "DEFAULT":
+        p = os.path.dirname(__file__) + "\\HCom_Received_Files"
+    
+    if not os.path.exists(p):
+        os.makedirs(p)
+    
+    return p
     
 def rdnname():
     names = ["Motoko", "Bato", "Kusanagi", "Frodon", "Sheldon", "Pipo", "Sam", "Gandalf", "Fitz", "Henry"]

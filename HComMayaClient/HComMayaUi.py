@@ -20,7 +20,6 @@ reload(HComUtils)
 from _globals import MayaGlobals
 
 ICONPATH = os.path.dirname(__file__) + "\\HCom_Icons\\"
-RECEIVED_FILES = os.path.dirname(__file__) + "\\HCom_Received_Files\\"
 
 class HComMayaMainView(MayaQWidgetDockableMixin, QtGui.QWidget):
     

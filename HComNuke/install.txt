@@ -1,0 +1,8 @@
+copy the HComNuke on your hardrive as well as the lib folder
+
+in the file C:\Users\%USER_NAME%\.nuke\init.py
+
+add these lines:
+nuke.pluginAddPath(PATH_TO_HCOM:HComNuke)
+nuke.pluginAddPath(PATH_TO_HCOM:\lib)
+nuke.pluginAddPath(PATH_TO_HCOM:\HComNuke\HCom_Icons)

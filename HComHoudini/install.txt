@@ -1,0 +1,2 @@
+copy the HComHoudini to $HOME/houdini14.0/scripts/python or in your $PYTHONPATH
+add $HOME/houdini14.0/scripts/python/HComHoudini in your $PYTHONPATH (using 123.py for houdinifx, hescape.py for other versions)

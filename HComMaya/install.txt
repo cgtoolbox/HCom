@@ -1,0 +1,2 @@
+copy the HComMaya in your $PYTHONPATH as well as the lib folder
+add $HOME/houdini14.0/scripts/python/HComHoudini in your $PYTHONPATH ( using userSetup.py)

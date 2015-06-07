@@ -6,11 +6,11 @@ import webbrowser
 import PySide.QtGui as QtGui
 import PySide.QtCore as QtCore
 
-import HComClient
-import HComUtils
-reload(HComUtils)
+import HComHoudiniClient
+import HComHoudiniUtils
+reload(HComHoudiniUtils)
 
-HCOM_VERSION = "0.7.0"
+HCOM_VERSION = "0.9.0"
 
 ICONPATH = os.path.dirname(__file__) + "\\HCom_Icons\\"
 HISTORY_PATH = os.path.dirname(__file__) + "\\HCom_History"
@@ -230,7 +230,7 @@ class UserChatTabWidget(QtGui.QWidget):
         
         self.actionButtonLayout.addWidget(sendLblW)
         
-        if self.clientType[0] == HComUtils.CLIENT_TYPE.MAYA_HENGINE or self.clientType[0] == HComUtils.CLIENT_TYPE.HOUDINI:
+        if self.clientType[0] == HComHoudiniUtils.CLIENT_TYPE.MAYA_HENGINE or self.clientType[0] == HComHoudiniUtils.CLIENT_TYPE.HOUDINI:
             self.sendotlBtn = QtGui.QPushButton("")
             self.sendotlBtn.setToolTip("Send houdini node or digital asset")
             self.sendotlBtn.setIconSize(QtCore.QSize(32,32))
@@ -241,7 +241,7 @@ class UserChatTabWidget(QtGui.QWidget):
             self.actionButtonLayout.addWidget(self.sendotlBtn)
             self.widgetList.append(self.sendotlBtn)      
 
-        if self.clientType[0] == HComUtils.CLIENT_TYPE.HOUDINI:
+        if self.clientType[0] == HComHoudiniUtils.CLIENT_TYPE.HOUDINI:
             self.sendSettingsBtn = QtGui.QPushButton("")
             self.sendSettingsBtn.setToolTip("Send houdini node or digital asset settings")
             self.sendSettingsBtn.setIconSize(QtCore.QSize(32,32))
@@ -252,7 +252,7 @@ class UserChatTabWidget(QtGui.QWidget):
             self.actionButtonLayout.addWidget(self.sendSettingsBtn)
             self.widgetList.append(self.sendSettingsBtn)
             
-        if self.clientType[0] == HComUtils.CLIENT_TYPE.HOUDINI:
+        if self.clientType[0] == HComHoudiniUtils.CLIENT_TYPE.HOUDINI:
             
             self.sendBgeoBtn = QtGui.QPushButton("")
             self.sendBgeoBtn.setToolTip("Send bgeo mesh")
@@ -320,7 +320,7 @@ class UserChatTabWidget(QtGui.QWidget):
             timeStamp = "{1}:{2} {0}:".format(header, str(now.hour).zfill(2), str(now.minute).zfill(2))
         
             if fromMyself:
-                timeStamp = HComUtils.coloredString(timeStamp, "70738c", italic=True)
+                timeStamp = HComHoudiniUtils.coloredString(timeStamp, "70738c", italic=True)
                 
         else:
             timeStamp = ""
@@ -453,7 +453,7 @@ class UserListDockWidget(QtGui.QWidget):
     
     def _openReceivedFilesFolder(self):
         
-        RECEIVED_FILES_PATH = HComUtils.fetchMyReceivedFilesFolder()
+        RECEIVED_FILES_PATH = HComHoudiniUtils.fetchMyReceivedFilesFolder()
         
         if os.path.exists(RECEIVED_FILES_PATH):
             os.startfile(RECEIVED_FILES_PATH)
@@ -572,7 +572,7 @@ class SettingsWindow(QtGui.QDialog):
     def __init__(self, parent=None):
         QtGui.QDialog.__init__(self, parent=parent)
         
-        initValues = HComUtils.readIni()
+        initValues = HComHoudiniUtils.readIni()
         
         self.SETTINGS = initValues
         
@@ -675,7 +675,7 @@ class SettingsWindow(QtGui.QDialog):
         else:
             self.SETTINGS["MY_RECEIVED_FILES"] = str(self.myReceivedFileLine.text())
         
-        HComUtils.writeIni(self.SETTINGS)
+        HComHoudiniUtils.writeIni(self.SETTINGS)
         self.close()
     
     def cancelSettings(self):
@@ -808,11 +808,11 @@ class MessageBox(QtGui.QWidget):
         self.acceptBtn.setDisabled(True)
         self.cancelBtn.setDisabled(True)
         
-        HComClient.sendDataReceivedInfo(self.sender, self.mainUi.ID, [False, self.dataType], self.mainUi.ID)
+        HComHoudiniClient.sendDataReceivedInfo(self.sender, self.mainUi.ID, [False, self.dataType], self.mainUi.ID)
         
     def acceptInput(self):
         
-        settings = HComUtils.readIni()
+        settings = HComHoudiniUtils.readIni()
         self.activityBar.setMaximum(0)
         self.activityBar.setTextVisible(False)
         self.activityBar.setVisible(True)
@@ -822,31 +822,31 @@ class MessageBox(QtGui.QWidget):
         # Send a setting of parms for the given node selection type
         if self.dataType == "settings":
             
-            self.workThread.workFonc = HComUtils.setOtlSettings
+            self.workThread.workFonc = HComHoudiniUtils.setOtlSettings
             self.workThread.start()
         
         # Send an otl or a node
         elif self.dataType == "otl":
             
-            self.workThread.workFonc = HComUtils.createOtl
+            self.workThread.workFonc = HComHoudiniUtils.createOtl
             self.workThread.start()
                 
         # Bgeo mesh
         elif self.dataType == "mesh":
             
-            self.workThread.workFonc = HComUtils.createMesh
+            self.workThread.workFonc = HComHoudiniUtils.createMesh
             self.workThread.start()
      
         # Pictures
         elif self.dataType == "pic":
             
-            self.workThread.workFonc = HComUtils.createPic
+            self.workThread.workFonc = HComHoudiniUtils.createPic
             self.workThread.start()
             
         # Alembic
         elif self.dataType == "alembic":
             
-            self.workThread.workFonc = HComUtils.createAlembic
+            self.workThread.workFonc = HComHoudiniUtils.createAlembic
             self.workThread.start()
             
         self.acceptBtn.setDisabled(True)
@@ -855,7 +855,7 @@ class MessageBox(QtGui.QWidget):
         
     def endJob(self):
         
-        HComClient.sendDataReceivedInfo(self.sender, self.mainUi.ID, [True, self.dataType], self.mainUi.ID)
+        HComHoudiniClient.sendDataReceivedInfo(self.sender, self.mainUi.ID, [True, self.dataType], self.mainUi.ID)
         self.activityBar.setMaximum(1)
         self.activityBar.setValue(1)
         self.activityBar.setStyleSheet('''QProgressBar::chunk{background:green;}''')

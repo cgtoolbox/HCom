@@ -6,15 +6,12 @@ import getpass
 import os
 
 import threading
+import HComHoudiniUi
+import HComHoudiniUtils
 
 pysidePath = os.environ["PYTHONHOME"] + r"lib\site-packages-forced"
 if not pysidePath in sys.path:
     sys.path.append(pysidePath)
-
-import HComUi
-
-import HComUtils
-reload(HComUtils)
 
 global server_conn
 server_conn = None
@@ -43,13 +40,13 @@ class HCom_ClientService(rpyc.Service):
     def on_disconnect(self):
         server_is_disconnected()
     
-    def exposed_catchData(self, dataType, sender, data, tabTarget, clientType):
-
-        HComUi.receiveData(sender, data, dataType, tabTarget, clientType)
+    def exposed_catchData(self, dataType, _sender, data, tabTarget, clientType):
+        
+        HComHoudiniUi.receiveData(_sender, data, dataType, tabTarget, clientType)
         
     def exposed_sendIDUpdate(self, ID, action, clientType):
         
-        HComUi.receiveIDUpdate(ID, action, clientType)
+        HComHoudiniUi.receiveIDUpdate(ID, action, clientType)
 
 
 def connectToServer(ID=None, clientType="NONE"):
@@ -64,7 +61,7 @@ def connectToServer(ID=None, clientType="NONE"):
     global bgsrv
     
     try:
-        server_conn = rpyc.connect(HComUtils.readIni()["SERVER"], int(HComUtils.readIni()["PORT"]), service=HCom_ClientService, config={"allow_pickle":True})
+        server_conn = rpyc.connect(HComHoudiniUtils.readIni()["SERVER"], int(HComHoudiniUtils.readIni()["PORT"]), service=HCom_ClientService, config={"allow_pickle":True})
     except Exception as e:
         print("ERROR: Can not connect to server: " + str(e))
         return False, False
@@ -144,7 +141,7 @@ def sendOtl(target_clientID, sender, tabTarget, tabClientType=None):
         return False
     sel = n[0]
     
-    if tabClientType[0] != HComUtils.CLIENT_TYPE.HOUDINI:
+    if tabClientType[0] != HComHoudiniUtils.CLIENT_TYPE.HOUDINI:
         if not sel.type().definition():
             hou.ui.displayMessage("Invalid node")
             return False
@@ -200,7 +197,7 @@ def sendOtl(target_clientID, sender, tabTarget, tabClientType=None):
     otlData["PY_CODE"] = sel.asCode(recurse=True)
     otlData["OTL_NAME"] = sel.name()
     otlData["OTL_TYPE"] = sel.type().name()
-    otlData["OTL_ALL_LIBS"] = HComUtils.getAllLib(sel)
+    otlData["OTL_ALL_LIBS"] = HComHoudiniUtils.getAllLib(sel)
     
     result = _sendData(target_clientID, sender, otlData, "otl", tabTarget)
     if result:
@@ -274,7 +271,7 @@ def sendAlembic(target_clientID, sender, tabTarget, tabClientType=None):
     
     alembicExport.setInput(0, objectMerge)
     
-    outFile = HComUtils.fetchMyReceivedFilesFolder() + os.sep + name + "_tmpCacheAlembic.abc"
+    outFile = HComHoudiniUtils.fetchMyReceivedFilesFolder() + os.sep + name + "_tmpCacheAlembic.abc"
     
     alembicExport.parm("filename").set(outFile)
     alembicExport.render()
@@ -354,7 +351,7 @@ def sendObjMesh(target_clientID, sender, tabTarget, tabClientType=None):
     return result
 
 
-def sendPic(target_clientID, sender, tabTarget, imagePath, tabClientType=None):
+def sendPic(target_clientID, _sender, tabTarget, imagePath, tabClientType=None):
     
     with open(imagePath, 'rb') as f:
         imageData = f.read()
@@ -363,7 +360,7 @@ def sendPic(target_clientID, sender, tabTarget, imagePath, tabClientType=None):
     outImdageData["IMAGE_NAME"] = os.path.basename(imagePath)
     outImdageData["BINARY_DATA"] = imageData
     
-    result = _sendData(target_clientID, sender, outImdageData, "pic", tabTarget)
+    result = _sendData(target_clientID, _sender, outImdageData, "pic", tabTarget)
     if result:
         return True
     else:
@@ -412,7 +409,8 @@ def disconnect():
     except:
         pass
     server_conn = None
-    HComUi.HComMainUi.updateUiThread.data = {"ACTION":"server_disconnect", "ID":None, "CLIENT_TYPE":None}
+    
+    HComHoudiniUi.HComMainUi.updateUiThread.data = {"ACTION":"server_disconnect", "ID":None, "CLIENT_TYPE":None}
     
     
 def server_is_disconnected():

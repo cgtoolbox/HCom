@@ -146,6 +146,7 @@ def createAlembic(data, sender="", settings=None):
     
     fileName = data["NAME"]
     filePath = fetchMyReceivedFilesFolder() + os.sep + fileName
+    filePath = incrementFile(filePath)
     
     with open(filePath, 'wb') as f:
         f.write(data["DATA"])

@@ -8,11 +8,11 @@ import os
 import PySide.QtGui as QtGui
 import PySide.QtCore as QtCore
 
-import HComClient
-import HComUtils
-reload(HComUtils)
-import HComWidgets
-reload(HComWidgets)
+import HComHoudiniClient
+import HComHoudiniUtils
+reload(HComHoudiniUtils)
+import HComHoudiniWidgets
+reload(HComHoudiniWidgets)
 
 if not hasattr(hou.session, "HCOM_TABS"):
     hou.session.HCOM_TABS = {}
@@ -27,10 +27,10 @@ class HComMainView(QtGui.QFrame):
     def __init__(self, connected):
         QtGui.QFrame.__init__(self)
         
-        self.CLIENT_TYPE = [HComUtils.CLIENT_TYPE.HOUDINI,
+        self.CLIENT_TYPE = [HComHoudiniUtils.CLIENT_TYPE.HOUDINI,
                             hou.applicationName() + " " + hou.applicationVersionString()]
         
-        self.updateUiThread = HComWidgets.UiUpdaterThread()
+        self.updateUiThread = HComHoudiniWidgets.UiUpdaterThread()
         self.updateUiThread.update_ui_signal.connect(self._updateUi)
         self.updateUiThread.append_message_signal.connect(self._appendMessageToTab)
         self.updateUiThread.input_data_signal.connect(self._getInputData)
@@ -138,7 +138,7 @@ class HComMainView(QtGui.QFrame):
         self.userListLayout = QtGui.QHBoxLayout()
         self.userListWidget = QtGui.QWidget()
         
-        self.userListWidget = HComWidgets.UserListDockWidget(self.hcc, self.ID, self)
+        self.userListWidget = HComHoudiniWidgets.UserListDockWidget(self.hcc, self.ID, self)
         self.userListWidget.session_ID = self.ID
         self.userListWidget.userListW.session_ID = self.ID
         self.userListLayout.addWidget(self.userListWidget)
@@ -166,7 +166,7 @@ class HComMainView(QtGui.QFrame):
                 tab = hou.session.HCOM_TABS[k]
                 self.centralTabWidget.addTab(tab, k)
         else:
-            self.openChatRoom = HComWidgets.UserChatTabWidget("OPEN_CHAT_ROOM", clientType="None", openChatRoom=True, parent=self)
+            self.openChatRoom = HComHoudiniWidgets.UserChatTabWidget("OPEN_CHAT_ROOM", clientType="None", openChatRoom=True, parent=self)
             self.centralTabWidget.addTab(self.openChatRoom, "Open Chat Room")
             self.USER_TABS["OPEN_CHAT_ROOM"] = self.openChatRoom
             hou.session.HCOM_TABS["OPEN_CHAT_ROOM"] = self.openChatRoom
@@ -192,7 +192,7 @@ class HComMainView(QtGui.QFrame):
             targetTabIdx = self.centralTabWidget.indexOf(self.USER_TABS[tabTarget])
             self.centralTabWidget.tabBar().setTabIcon(targetTabIdx, QtGui.QIcon(ICONPATH + "unreadmsg.png"))
             
-            settings = HComUtils.readIni()
+            settings = HComHoudiniUtils.readIni()
             if "PLAY_SOUND" in settings.keys():
                 if settings["PLAY_SOUND"]:
                     s = QtGui.QSound(ICONPATH + "gnm.wav")
@@ -255,7 +255,7 @@ class HComMainView(QtGui.QFrame):
             targetTabIdx = self.centralTabWidget.indexOf(self.USER_TABS[tabTarget])
             self.centralTabWidget.tabBar().setTabIcon(targetTabIdx, QtGui.QIcon(ICONPATH + "unreadmsg.png"))
             
-            settings = HComUtils.readIni()
+            settings = HComHoudiniUtils.readIni()
             if "PLAY_SOUND" in settings.keys():
                 if settings["PLAY_SOUND"]:
                     s = QtGui.QSound(ICONPATH + "gnm.wav")
@@ -270,10 +270,10 @@ class HComMainView(QtGui.QFrame):
         if not message:
             return
         
-        settings = HComUtils.readIni()
+        settings = HComHoudiniUtils.readIni()
         
         if targets:
-            result = HComClient.sendMessage(targets, self.ID, message, tabTarget)
+            result = HComHoudiniClient.sendMessage(targets, self.ID, message, tabTarget)
         
             if isinstance(result, list):
                 
@@ -287,7 +287,7 @@ class HComMainView(QtGui.QFrame):
         
         if settings["SAVE_HISTORY"]:
             for t in targets:
-                HComUtils.writeHistory(t, timeStamp, str(tab.messageLine.toPlainText().encode('latin-1')))
+                HComHoudiniUtils.writeHistory(t, timeStamp, str(tab.messageLine.toPlainText().encode('latin-1')))
         
         tab.messageLine.clear()
         
@@ -299,7 +299,7 @@ class HComMainView(QtGui.QFrame):
         now = datetime.datetime.now()
         msg = str(now.hour).zfill(2)  + ":" + str(now.minute).zfill(2) + " Sending Node ..."
 
-        tab.appendDataSendBox(msg, targets, self.ID, tabTarget, HComClient.sendOtl, tabClientType=tabClientType)
+        tab.appendDataSendBox(msg, targets, self.ID, tabTarget, HComHoudiniClient.sendOtl, tabClientType=tabClientType)
         
     def _sendSettings(self, targets, tabTarget, tab):
         
@@ -309,7 +309,7 @@ class HComMainView(QtGui.QFrame):
         now = datetime.datetime.now()
         msg = str(now.hour).zfill(2)  + ":" + str(now.minute).zfill(2) + " Sending Node Settings ..."
 
-        tab.appendDataSendBox(msg, targets, self.ID, tabTarget, HComClient.sendSettings)
+        tab.appendDataSendBox(msg, targets, self.ID, tabTarget, HComHoudiniClient.sendSettings)
                 
     def _sendBgeo(self, targets, tabTarget, tab):
         
@@ -319,7 +319,7 @@ class HComMainView(QtGui.QFrame):
         now = datetime.datetime.now()
         msg = str(now.hour).zfill(2)  + ":" + str(now.minute).zfill(2) + " Sending bgeo file ..."
 
-        tab.appendDataSendBox(msg, targets, self.ID, tabTarget, HComClient.sendBgeo)
+        tab.appendDataSendBox(msg, targets, self.ID, tabTarget, HComHoudiniClient.sendBgeo)
         
     def _sendObjMesh(self, targets, tabTarget, tab):
         
@@ -329,7 +329,7 @@ class HComMainView(QtGui.QFrame):
         now = datetime.datetime.now()
         msg = str(now.hour).zfill(2)  + ":" + str(now.minute).zfill(2) + " Sending obj file ..."
 
-        tab.appendDataSendBox(msg, targets, self.ID, tabTarget, HComClient.sendObjMesh)
+        tab.appendDataSendBox(msg, targets, self.ID, tabTarget, HComHoudiniClient.sendObjMesh)
         
     def _sendAlembic(self, targets, tabTarget, tab):
         
@@ -339,7 +339,7 @@ class HComMainView(QtGui.QFrame):
         now = datetime.datetime.now()
         msg = str(now.hour).zfill(2)  + ":" + str(now.minute).zfill(2) + " Sending Alembic cache ..."
 
-        tab.appendDataSendBox(msg, targets, self.ID, tabTarget, HComClient.sendAlembic)
+        tab.appendDataSendBox(msg, targets, self.ID, tabTarget, HComHoudiniClient.sendAlembic)
         
     def _sendPic(self, targets, tabTarget, tab):
         
@@ -359,7 +359,7 @@ class HComMainView(QtGui.QFrame):
         now = datetime.datetime.now()
         msg = str(now.hour).zfill(2)  + ":" + str(now.minute).zfill(2) + " Sending picture file ..."
 
-        tab.appendDataSendBox(msg, targets, self.ID, tabTarget, HComClient.sendPic, imagePath = imageFile )
+        tab.appendDataSendBox(msg, targets, self.ID, tabTarget, HComHoudiniClient.sendPic, imagePath = imageFile )
         
     def _addUserTab(self, target_ID, clientType, fromUserList=False):
         '''
@@ -374,7 +374,7 @@ class HComMainView(QtGui.QFrame):
             self.centralTabWidget.setCurrentWidget(self.USER_TABS[target_ID])
             
         else:
-            tab = HComWidgets.UserChatTabWidget(str(target_ID), clientType=clientType,  parent=self)
+            tab = HComHoudiniWidgets.UserChatTabWidget(str(target_ID), clientType=clientType,  parent=self)
             self.USER_TABS[target_ID] = tab
             
             self.centralTabWidget.addTab(tab, str(target_ID))
@@ -396,7 +396,7 @@ class HComMainView(QtGui.QFrame):
         
         ID = str(self.ID_line.text())
         hou.session.HCOM_CUR_ID = ID
-        result = HComClient.connectToServer(ID=ID, clientType=self.CLIENT_TYPE)
+        result = HComHoudiniClient.connectToServer(ID=ID, clientType=self.CLIENT_TYPE)
         
         if not result:
             return False
@@ -449,14 +449,14 @@ class HComMainView(QtGui.QFrame):
             if not serverDisconnect:
                 self.userListWidget.userListW.outuserInfo.clear()
             
-            if HComClient.bgsrv:
+            if HComHoudiniClient.bgsrv:
                 try:
-                    HComClient.bgsrv.stop()
+                    HComHoudiniClient.bgsrv.stop()
                 except:
                     pass
-            if HComClient.server_conn:
+            if HComHoudiniClient.server_conn:
                 try:
-                    HComClient.server_conn.close()
+                    HComHoudiniClient.server_conn.close()
                 except:
                     pass
             
@@ -476,12 +476,12 @@ class HComMainView(QtGui.QFrame):
     
     def _showSettings(self):
         
-        settings = HComWidgets.SettingsWindow(parent=self)
+        settings = HComHoudiniWidgets.SettingsWindow(parent=self)
         settings.exec_()
         
     def _rdnname(self):
         if str(self.ID_line.text()) == "2501":
-            self.ID_line.setText(HComUtils.rdnname())
+            self.ID_line.setText(HComHoudiniUtils.rdnname())
     
 def main():
     
@@ -501,7 +501,7 @@ def main():
 ######################################################################
 def receiveData(sender, data, dataType, tabTarget, senderType=[None, None]):
     
-    settings = HComUtils.readIni()
+    settings = HComHoudiniUtils.readIni()
     # Send a text message
     if dataType == "msg":
         
@@ -514,7 +514,7 @@ def receiveData(sender, data, dataType, tabTarget, senderType=[None, None]):
         if settings["SAVE_HISTORY"]:
             now = datetime.datetime.now()
             timeStamp = "{1}:{2} {0}:".format(sender, str(now.hour).zfill(2), str(now.minute).zfill(2))
-            HComUtils.writeHistory(sender, timeStamp, data)
+            HComHoudiniUtils.writeHistory(sender, timeStamp, data)
     
     # Send a setting of parms for the given node selection type
     elif dataType == "settings":

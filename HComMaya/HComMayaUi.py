@@ -10,12 +10,12 @@ import os
 import PySide.QtGui as QtGui
 import PySide.QtCore as QtCore
 
-import HComClient
+import HComMayaClient
 
-import HComWidgets
-reload(HComWidgets)
-import HComUtils
-reload(HComUtils)
+import HComMayaWidgets
+reload(HComMayaWidgets)
+import HComMayaUtils
+reload(HComMayaUtils)
 
 from _globals import MayaGlobals
 
@@ -31,7 +31,7 @@ class HComMayaMainView(MayaQWidgetDockableMixin, QtGui.QWidget):
         self.CLIENT_TYPE = self._fetchHengine()
         self.setWindowFlags(QtCore.Qt.Window)
         
-        self.updateUiThread = HComWidgets.UiUpdaterThread()
+        self.updateUiThread = HComMayaWidgets.UiUpdaterThread()
         self.updateUiThread.update_ui_signal.connect(self._updateUi)
         self.updateUiThread.append_message_signal.connect(self._appendMessageToTab)
         self.updateUiThread.input_data_signal.connect(self._getInputData)
@@ -73,12 +73,12 @@ class HComMayaMainView(MayaQWidgetDockableMixin, QtGui.QWidget):
         
         v = cmds.about(version=True)
         hengineInfo = ""
-        mayaType = HComUtils.CLIENT_TYPE.MAYA_NO_HENGINE
+        mayaType = HComMayaUtils.CLIENT_TYPE.MAYA_NO_HENGINE
         plugins = cmds.pluginInfo( query=True, listPlugins=True )
         if plugins:
             if "houdiniEngine" in cmds.pluginInfo( query=True, listPlugins=True ):
                 hengineInfo = " (Houdini Engine Loaded)"
-                mayaType = HComUtils.CLIENT_TYPE.MAYA_HENGINE
+                mayaType = HComMayaUtils.CLIENT_TYPE.MAYA_HENGINE
             
         return [mayaType, "Maya " + str(v) + hengineInfo]
 
@@ -151,7 +151,7 @@ class HComMayaMainView(MayaQWidgetDockableMixin, QtGui.QWidget):
         self.userListLayout = QtGui.QHBoxLayout()
         self.userListWidget = QtGui.QWidget()
         
-        self.userListWidget = HComWidgets.UserListDockWidget(self.hcc, self.ID, self)
+        self.userListWidget = HComMayaWidgets.UserListDockWidget(self.hcc, self.ID, self)
         self.userListWidget.session_ID = self.ID
         self.userListWidget.userListW.session_ID = self.ID
         self.userListLayout.addWidget(self.userListWidget)
@@ -178,7 +178,7 @@ class HComMayaMainView(MayaQWidgetDockableMixin, QtGui.QWidget):
                 tab = MayaGlobals.HCOM_TABS[k]
                 self.centralTabWidget.addTab(tab, k)
         else:
-            self.openChatRoom = HComWidgets.UserChatTabWidget("OPEN_CHAT_ROOM", clientType="None", openChatRoom=True, parent=self)
+            self.openChatRoom = HComMayaWidgets.UserChatTabWidget("OPEN_CHAT_ROOM", clientType="None", openChatRoom=True, parent=self)
             self.centralTabWidget.addTab(self.openChatRoom, "Open Chat Room")
             self.USER_TABS["OPEN_CHAT_ROOM"] = self.openChatRoom
             MayaGlobals.HCOM_TABS["OPEN_CHAT_ROOM"] = self.openChatRoom
@@ -204,7 +204,7 @@ class HComMayaMainView(MayaQWidgetDockableMixin, QtGui.QWidget):
             targetTabIdx = self.centralTabWidget.indexOf(self.USER_TABS[tabTarget])
             self.centralTabWidget.tabBar().setTabIcon(targetTabIdx, QtGui.QIcon(ICONPATH + "unreadmsg.png"))
             
-            settings = HComUtils.readIni()
+            settings = HComMayaUtils.readIni()
             if "PLAY_SOUND" in settings.keys():
                 if settings["PLAY_SOUND"]:
                     s = QtGui.QSound(ICONPATH + "gnm.wav")
@@ -267,7 +267,7 @@ class HComMayaMainView(MayaQWidgetDockableMixin, QtGui.QWidget):
             targetTabIdx = self.centralTabWidget.indexOf(self.USER_TABS[tabTarget])
             self.centralTabWidget.tabBar().setTabIcon(targetTabIdx, QtGui.QIcon(ICONPATH + "unreadmsg.png"))
             
-            settings = HComUtils.readIni()
+            settings = HComMayaUtils.readIni()
             if "PLAY_SOUND" in settings.keys():
                 if settings["PLAY_SOUND"]:
                     s = QtGui.QSound(ICONPATH + "gnm.wav")
@@ -282,10 +282,10 @@ class HComMayaMainView(MayaQWidgetDockableMixin, QtGui.QWidget):
         if not message:
             return
         
-        settings = HComUtils.readIni()
+        settings = HComMayaUtils.readIni()
         
         if targets:
-            result = HComClient.sendMessage(targets, self.ID, message, tabTarget)
+            result = HComMayaClient.sendMessage(targets, self.ID, message, tabTarget)
         
             if isinstance(result, list):
                 
@@ -299,7 +299,7 @@ class HComMayaMainView(MayaQWidgetDockableMixin, QtGui.QWidget):
         
         if settings["SAVE_HISTORY"]:
             for t in targets:
-                HComUtils.writeHistory(t, timeStamp, str(tab.messageLine.toPlainText().encode('latin-1')))
+                HComMayaUtils.writeHistory(t, timeStamp, str(tab.messageLine.toPlainText().encode('latin-1')))
         
         tab.messageLine.clear()
         
@@ -311,7 +311,7 @@ class HComMayaMainView(MayaQWidgetDockableMixin, QtGui.QWidget):
         now = datetime.datetime.now()
         msg = str(now.hour).zfill(2)  + ":" + str(now.minute).zfill(2) + " Sending Node ..."
 
-        tab.appendDataSendBox(msg, targets, self.ID, tabTarget, HComClient.sendOtl)
+        tab.appendDataSendBox(msg, targets, self.ID, tabTarget, HComMayaClient.sendOtl)
         
     def _sendAlembic(self, targets, tabTarget, tab):
         
@@ -321,7 +321,7 @@ class HComMayaMainView(MayaQWidgetDockableMixin, QtGui.QWidget):
         now = datetime.datetime.now()
         msg = str(now.hour).zfill(2)  + ":" + str(now.minute).zfill(2) + " Sending Alembic cache ..."
 
-        tab.appendDataSendBox(msg, targets, self.ID, tabTarget, HComClient.sendAlembic)
+        tab.appendDataSendBox(msg, targets, self.ID, tabTarget, HComMayaClient.sendAlembic)
         
     def _sendSettings(self, targets, tabTarget, tab):
         
@@ -331,7 +331,7 @@ class HComMayaMainView(MayaQWidgetDockableMixin, QtGui.QWidget):
         now = datetime.datetime.now()
         msg = str(now.hour).zfill(2)  + ":" + str(now.minute).zfill(2) + " Sending Node Settings ..."
 
-        tab.appendDataSendBox(msg, targets, self.ID, tabTarget, HComClient.sendSettings)
+        tab.appendDataSendBox(msg, targets, self.ID, tabTarget, HComMayaClient.sendSettings)
                 
     def _sendBgeo(self, targets, tabTarget, tab):
         
@@ -341,7 +341,7 @@ class HComMayaMainView(MayaQWidgetDockableMixin, QtGui.QWidget):
         now = datetime.datetime.now()
         msg = str(now.hour).zfill(2)  + ":" + str(now.minute).zfill(2) + " Sending bgeo file ..."
 
-        tab.appendDataSendBox(msg, targets, self.ID, tabTarget, HComClient.sendBgeo)
+        tab.appendDataSendBox(msg, targets, self.ID, tabTarget, HComMayaClient.sendBgeo)
         
     def _sendObjMesh(self, targets, tabTarget, tab):
         
@@ -351,7 +351,7 @@ class HComMayaMainView(MayaQWidgetDockableMixin, QtGui.QWidget):
         now = datetime.datetime.now()
         msg = str(now.hour).zfill(2)  + ":" + str(now.minute).zfill(2) + " Sending obj file ..."
 
-        tab.appendDataSendBox(msg, targets, self.ID, tabTarget, HComClient.sendObjMesh)       
+        tab.appendDataSendBox(msg, targets, self.ID, tabTarget, HComMayaClient.sendObjMesh)       
         
     def _sendPic(self, targets, tabTarget, tab):
         
@@ -371,7 +371,7 @@ class HComMayaMainView(MayaQWidgetDockableMixin, QtGui.QWidget):
         now = datetime.datetime.now()
         msg = str(now.hour).zfill(2)  + ":" + str(now.minute).zfill(2) + " Sending picture file ..."
 
-        tab.appendDataSendBox(msg, targets, self.ID, tabTarget, HComClient.sendPic, imagePath = imageFile )
+        tab.appendDataSendBox(msg, targets, self.ID, tabTarget, HComMayaClient.sendPic, imagePath = imageFile )
         
     def _addUserTab(self, target_ID, clientType, fromUserList=False):
         '''
@@ -386,7 +386,7 @@ class HComMayaMainView(MayaQWidgetDockableMixin, QtGui.QWidget):
             self.centralTabWidget.setCurrentWidget(self.USER_TABS[target_ID])
             
         else:
-            tab = HComWidgets.UserChatTabWidget(str(target_ID), clientType=clientType,  parent=self)
+            tab = HComMayaWidgets.UserChatTabWidget(str(target_ID), clientType=clientType,  parent=self)
             self.USER_TABS[target_ID] = tab
             
             self.centralTabWidget.addTab(tab, str(target_ID))
@@ -410,7 +410,7 @@ class HComMayaMainView(MayaQWidgetDockableMixin, QtGui.QWidget):
         
         ID = str(self.ID_line.text())
         MayaGlobals.CUR_ID = ID
-        result = HComClient.connectToServer(ID=ID, clientType=self.CLIENT_TYPE)
+        result = HComMayaClient.connectToServer(ID=ID, clientType=self.CLIENT_TYPE)
         
         if not result:
             return False
@@ -467,14 +467,14 @@ class HComMayaMainView(MayaQWidgetDockableMixin, QtGui.QWidget):
             if not serverDisconnect:
                 self.userListWidget.userListW.outuserInfo.clear()
             
-            if HComClient.bgsrv:
+            if HComMayaClient.bgsrv:
                 try:
-                    HComClient.bgsrv.stop()
+                    HComMayaClient.bgsrv.stop()
                 except:
                     pass
-            if HComClient.server_conn:
+            if HComMayaClient.server_conn:
                 try:
-                    HComClient.server_conn.close()
+                    HComMayaClient.server_conn.close()
                 except:
                     pass
             
@@ -494,12 +494,12 @@ class HComMayaMainView(MayaQWidgetDockableMixin, QtGui.QWidget):
     
     def _showSettings(self):
         
-        settings = HComWidgets.SettingsWindow(parent=self)
+        settings = HComMayaWidgets.SettingsWindow(parent=self)
         settings.exec_()
         
     def _rdnname(self):
         if str(self.ID_line.text()) == "2501":
-            self.ID_line.setText(HComUtils.rdnname())
+            self.ID_line.setText(HComMayaUtils.rdnname())
     
 def main(parent=None):
     
@@ -515,7 +515,7 @@ def main(parent=None):
 ######################################################################
 def receiveData(sender, data, dataType, tabTarget, senderType=[None, None]):
     
-    settings = HComUtils.readIni()
+    settings = HComMayaUtils.readIni()
     # Send a text message
     if dataType == "msg":
         
@@ -528,7 +528,7 @@ def receiveData(sender, data, dataType, tabTarget, senderType=[None, None]):
         if settings["SAVE_HISTORY"]:
             now = datetime.datetime.now()
             timeStamp = "{1}:{2} {0}:".format(sender, str(now.hour).zfill(2), str(now.minute).zfill(2))
-            HComUtils.writeHistory(sender, timeStamp, data)
+            HComMayaUtils.writeHistory(sender, timeStamp, data)
     
     # Send a setting of parms for the given node selection type
     elif dataType == "settings":

@@ -110,7 +110,10 @@ def createAlembic(data, sender = "", settings=None):
     name = data["NAME"]
     binary = data["DATA"]
 
-    with open(fetchMyReceivedFilesFolder() + os.sep + name + ".abc", 'wb') as f:
+    abcFile = fetchMyReceivedFilesFolder() + os.sep + name + ".abc"
+    abcFile = incrementFile(abcFile)
+
+    with open(abcFile, 'wb') as f:
         f.write(binary)
         
     try:

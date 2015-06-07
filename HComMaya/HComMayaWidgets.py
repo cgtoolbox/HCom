@@ -6,10 +6,10 @@ import webbrowser
 import PySide.QtGui as QtGui
 import PySide.QtCore as QtCore
 
-import HComUtils
-import HComClient
+import HComMayaUtils
+import HComMayaClient
 
-HCOM_VERSION = "0.7.0"
+HCOM_VERSION = "0.9.0"
 
 ICONPATH = os.path.dirname(__file__) + "\\HCom_Icons\\"
 HISTORY_PATH = os.path.dirname(__file__) + "\\HCom_History"
@@ -32,7 +32,7 @@ class RecieveDataThread(QtCore.QThread):
 
     def run(self):
         
-        result = self.workFonc(self.dataDict, self.sender, self.settings)
+        result = self.workFonc(self.dataDict, self._sender, self.settings)
         self.dataRecieved_signal.emit(result)
     
     def workFonc(self, *args, **kwargs):
@@ -48,16 +48,16 @@ class SendingDataThread(QtCore.QThread):
         
         QtCore.QThread.__init__(self)
         self.target_clientID = None
-        self.sender = None
+        self._sender = None
         self.tabTarget = None
         self.imagePath = None
         
     def run(self):
         
         if self.imagePath:
-            result = self.workFunc(self.target_clientID, self.sender, self.tabTarget, self.imagePath)
+            result = self.workFunc(self.target_clientID, self._sender, self.tabTarget, self.imagePath)
         else:
-            result = self.workFunc(self.target_clientID, self.sender, self.tabTarget)
+            result = self.workFunc(self.target_clientID, self._sender, self.tabTarget)
         
         if result:
             self.dataSent_signal.emit(1)
@@ -283,7 +283,7 @@ class UserChatTabWidget(QtGui.QWidget):
             timeStamp = "{1}:{2} {0}:".format(header, str(now.hour).zfill(2), str(now.minute).zfill(2))
         
             if fromMyself:
-                timeStamp = HComUtils.coloredString(timeStamp, "70738c", italic=True)
+                timeStamp = HComMayaUtils.coloredString(timeStamp, "70738c", italic=True)
                 
         else:
             timeStamp = ""
@@ -416,7 +416,7 @@ class UserListDockWidget(QtGui.QWidget):
     
     def _openReceivedFilesFolder(self):
         
-        RECEIVED_FILES_PATH = HComUtils.fetchMyReceivedFilesFolder()
+        RECEIVED_FILES_PATH = HComMayaUtils.fetchMyReceivedFilesFolder()
         if os.path.exists(RECEIVED_FILES_PATH):
             os.startfile(RECEIVED_FILES_PATH)
         else:
@@ -534,7 +534,7 @@ class SettingsWindow(QtGui.QDialog):
     def __init__(self, parent=None):
         QtGui.QDialog.__init__(self, parent=parent)
         
-        initValues = HComUtils.readIni()
+        initValues = HComMayaUtils.readIni()
         
         self.SETTINGS = initValues
         
@@ -632,7 +632,7 @@ class SettingsWindow(QtGui.QDialog):
         else:
             self.SETTINGS["MY_RECEIVED_FILES"] = str(self.myReceivedFileLine.text())
         
-        HComUtils.writeIni(self.SETTINGS)
+        HComMayaUtils.writeIni(self.SETTINGS)
         self.close()
     
     def cancelSettings(self):
@@ -650,7 +650,7 @@ class SendingDataMessageBox(QtGui.QWidget):
         self.workerThread.workFunc = workFunc
         self.workerThread.target_clientID = target_clientID
         self.workerThread.tabTarget = tabTarget
-        self.workerThread.sender = _sender
+        self.workerThread._sender = _sender
         self.workerThread.imagePath = imagePath
         self.workerThread.dataSent_signal.connect(self.dataSent)
         
@@ -764,11 +764,11 @@ class MessageBox(QtGui.QWidget):
         self.acceptBtn.setDisabled(True)
         self.cancelBtn.setDisabled(True)
         
-        HComClient.sendDataReceivedInfo(self.sender, self.mainUi.ID, [False, self.dataType], self.mainUi.ID)
+        HComMayaClient.sendDataReceivedInfo(self.sender, self.mainUi.ID, [False, self.dataType], self.mainUi.ID)
         
     def acceptInput(self):
         
-        settings = HComUtils.readIni()
+        settings = HComMayaUtils.readIni()
         self.activityBar.setMaximum(0)
         self.activityBar.setTextVisible(False)
         self.activityBar.setVisible(True)
@@ -778,25 +778,25 @@ class MessageBox(QtGui.QWidget):
         # Send an otl or a node
         if self.dataType == "otl":
             
-            self.workThread.workFonc = HComUtils.createOtl
+            self.workThread.workFonc = HComMayaUtils.createOtl
             self.workThread.start()
                 
         # Bgeo mesh
         elif self.dataType == "mesh":
             
-            self.workThread.workFonc = HComUtils.createMesh
+            self.workThread.workFonc = HComMayaUtils.createMesh
             self.workThread.start()
      
         # Pictures
         elif self.dataType == "pic":
             
-            self.workThread.workFonc = HComUtils.createPic
+            self.workThread.workFonc = HComMayaUtils.createPic
             self.workThread.start()
             
         # Alembic
         elif self.dataType == "alembic":
             
-            self.workThread.workFonc = HComUtils.createAlembic
+            self.workThread.workFonc = HComMayaUtils.createAlembic
             self.workThread.start()
             
         self.acceptBtn.setDisabled(True)
@@ -810,7 +810,7 @@ class MessageBox(QtGui.QWidget):
         else:
             self.activityBar.setStyleSheet('''QProgressBar::chunk{background:red;}''')
                 
-        HComClient.sendDataReceivedInfo(self.sender, self.mainUi.ID, [True, self.dataType], self.mainUi.ID)
+        HComMayaClient.sendDataReceivedInfo(self.sender, self.mainUi.ID, [True, self.dataType], self.mainUi.ID)
         self.activityBar.setMaximum(1)
         self.activityBar.setValue(1)
         self.activityBar.setStyleSheet('''QProgressBar::chunk{background:green;}''')

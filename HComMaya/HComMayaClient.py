@@ -5,7 +5,6 @@ import os
 
 import maya.cmds as cmds
 import maya.utils as mUtils
-from HComMayaClient import HComWidgets
 
 from PySide import QtGui
 
@@ -14,7 +13,8 @@ import threading
 from _globals import MayaGlobals
 
 import HComMayaUi
-import HComUtils
+import HComMayaUtils
+import HComMayaWidgets
 
 global server_conn
 server_conn = None
@@ -64,7 +64,7 @@ def connectToServer(ID=None, clientType="NONE"):
     global bgsrv
     
     try:
-        server_conn = rpyc.connect(HComUtils.readIni()["SERVER"].replace(" ",""), int(str(HComUtils.readIni()["PORT"]).replace(" ","")), service=HCom_ClientService, config={"allow_pickle":True})
+        server_conn = rpyc.connect(HComMayaUtils.readIni()["SERVER"].replace(" ",""), int(str(HComMayaUtils.readIni()["PORT"]).replace(" ","")), service=HCom_ClientService, config={"allow_pickle":True})
     except Exception as e:
         print("ERROR: Can not connect to server: " + str(e))
         return False, False
@@ -197,13 +197,13 @@ def _exportAlembic():
         ask.exec_()
         return False
     
-    name = str(selection[0]) + ".abc"
-    abcFile = HComUtils.fetchMyReceivedFilesFolder() + os.sep + name
-    abcFile = HComUtils.incrementFile(abcFile)
+    name = str(selection[0]).replace("|", "_") + ".abc"
+    abcFile = HComMayaUtils.fetchMyReceivedFilesFolder() + os.sep + name
+    abcFile = HComMayaUtils.incrementFile(abcFile)
     start = cmds.playbackOptions(query=True, minTime=True)
     end = cmds.playbackOptions(query=True, maxTime=True)
     
-    frameRangeUi = HComWidgets.FrameRangeSelection(start=start, end=end)
+    frameRangeUi = HComMayaWidgets.FrameRangeSelection(start=start, end=end)
     frameRangeUi.exec_()
     
     if not frameRangeUi.VALID:
@@ -211,7 +211,6 @@ def _exportAlembic():
     
     else:
         frames = frameRangeUi.frameRange
-        print frames
     
     cmd = "-fr {0} {1} -f {2}".format(frames[0], frames[1], abcFile)
     cmds.AbcExport(sl=True, j=cmd)
@@ -231,10 +230,10 @@ def _exportObj():
         ask.exec_()
         return False, False
     
-    meshName = str(selection[0])
+    meshName = str(selection[0]).replace("|", "_")
     
-    objtmp = HComUtils.fetchMyReceivedFilesFolder() + os.sep + meshName + "_tmp.obj"
-    objtmp = HComUtils.incrementFile(objtmp)
+    objtmp = HComMayaUtils.fetchMyReceivedFilesFolder() + os.sep + meshName + "_tmp.obj"
+    objtmp = HComMayaUtils.incrementFile(objtmp)
     
     try:
         cmds.file(objtmp, force=True, type="OBJexport", es=True, shader=False, )
@@ -246,7 +245,7 @@ def _exportObj():
     
     
 
-def sendPic(target_clientID, sender, tabTarget, imagePath):
+def sendPic(target_clientID, _sender, tabTarget, imagePath):
     
     with open(imagePath, 'rb') as f:
         imageData = f.read()
@@ -255,7 +254,7 @@ def sendPic(target_clientID, sender, tabTarget, imagePath):
     outImdageData["IMAGE_NAME"] = os.path.basename(imagePath)
     outImdageData["BINARY_DATA"] = imageData
     
-    result = _sendData(target_clientID, sender, outImdageData, "pic", tabTarget)
+    result = _sendData(target_clientID, _sender, outImdageData, "pic", tabTarget)
     if result:
         return True
     else:

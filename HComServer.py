@@ -129,6 +129,7 @@ class HCom_Server(rpyc.Service):
 if __name__ == "__main__":
     
     print("LAUNCHING HCOM SERVER ...")
+    print("SERVER VERSION: 1.0")
 
     t = ThreadedServer(HCom_Server, port = 5000, protocol_config={"allow_public_attrs" : True, "allow_pickle" : True})
     t.start()
